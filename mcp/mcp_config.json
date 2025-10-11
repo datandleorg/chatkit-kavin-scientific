@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "quote-generator": {
+      "command": "python",
+      "args": ["/Users/saravanan/openai-agentkit-demo/mcp/mcp_server.py"],
+      "env": {
+        "PYTHONPATH": "/Users/saravanan/openai-agentkit-demo/mcp"
+      }
+    }
+  }
+}
