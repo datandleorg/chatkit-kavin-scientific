@@ -256,6 +256,7 @@ export function ChatKitPanel({
 
   const chatkit = useChatKit({
     api: { getClientSecret },
+
     theme: {
       colorScheme: theme,
       color: {
@@ -277,6 +278,11 @@ export function ChatKitPanel({
     },
     composer: {
       placeholder: PLACEHOLDER_INPUT,
+      attachments: {
+        enabled: true,
+        maxCount: 5,
+        maxSize: 10485760
+      }
     },
     threadItemActions: {
       feedback: false,
