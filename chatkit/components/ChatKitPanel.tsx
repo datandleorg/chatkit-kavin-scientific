@@ -353,12 +353,6 @@ export function ChatKitPanel({
             ? "pointer-events-none opacity-0"
             : "block h-full w-full"
         }
-        config={{
-          attachments: {
-            enabled: true,             // ← Turn on upload button
-            accept: ["image/*","pdf"] // optional, restrict types
-          }
-        }}
       />
       <ErrorOverlay
         error={blockingError}
