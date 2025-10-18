@@ -63,7 +63,13 @@ export async function POST(request: Request): Promise<Response> {
       body: JSON.stringify({
         workflow: { id: resolvedWorkflowId },
         user: userId,
-        file_upload: true,
+        chatkit_configuration: {
+          file_upload: {
+            enabled: true,
+            max_count: 5,
+            max_size: 10485760,
+          }
+        },
       }),
     });
 
