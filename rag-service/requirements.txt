@@ -1,0 +1,31 @@
+# FastAPI and web server
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+
+# Document processing with Docling-parse
+docling-parse>=4.7.0
+python-docx>=0.8.11
+
+# Vector database and embeddings
+pymongo>=4.6.0
+motor>=3.3.2
+sentence-transformers>=2.2.2
+numpy>=1.24.3
+
+# Text processing and search
+beautifulsoup4>=4.12.2
+lxml>=4.9.3
+
+# LLM integration
+openai>=1.0.0
+
+# Utilities
+pydantic>=2.6.0
+python-dotenv>=1.0.0
+httpx>=0.25.2
+aiofiles>=23.2.1
+
+# Development and testing
+pytest>=7.4.3
+pytest-asyncio>=0.21.1

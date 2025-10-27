@@ -1,0 +1,873 @@
+{
+	"info": {
+		"_postman_id": "rag-service-api-collection",
+		"name": "RAG Service API",
+		"description": "Complete API collection for RAG Service with document ingestion and hybrid search capabilities",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "rag-service"
+	},
+	"item": [
+		{
+			"name": "Health & Status",
+			"item": [
+				{
+					"name": "Root Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							]
+						},
+						"description": "Basic health check endpoint"
+					},
+					"response": []
+				},
+				{
+					"name": "Detailed Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "Detailed health check with MongoDB status and service status"
+					},
+					"response": []
+				}
+			],
+			"description": "Health check and status endpoints"
+		},
+		{
+			"name": "Document Ingestion",
+			"item": [
+				{
+					"name": "Upload Document",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": [],
+									"description": "Document file (PDF, DOCX, TXT)"
+								},
+								{
+									"key": "collection_name",
+									"value": "documents",
+									"type": "text",
+									"description": "Collection name for storing documents"
+								},
+								{
+									"key": "chunk_size",
+									"value": "1000",
+									"type": "text",
+									"description": "Size of text chunks"
+								},
+								{
+									"key": "chunk_overlap",
+									"value": "200",
+									"type": "text",
+									"description": "Overlap between chunks"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/ingest?collection_name=documents&chunk_size=1000&chunk_overlap=200",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"ingest"
+							],
+							"query": [
+								{
+									"key": "collection_name",
+									"value": "documents",
+									"description": "Collection name for storing documents"
+								},
+								{
+									"key": "chunk_size",
+									"value": "1000",
+									"description": "Size of text chunks"
+								},
+								{
+									"key": "chunk_overlap",
+									"value": "200",
+									"description": "Overlap between chunks"
+								}
+							]
+						},
+						"description": "Upload and process a document (PDF, DOCX, TXT) for ingestion into the vector database"
+					},
+					"response": []
+				}
+			],
+			"description": "Document upload and processing endpoints"
+		},
+		{
+			"name": "Search Operations",
+			"item": [
+				{
+					"name": "Hybrid Search",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"query\": \"machine learning algorithms\",\n  \"filters\": {\n    \"filename\": \"research_paper.pdf\"\n  }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/search?collection_name=documents&limit=10&hybrid_weight=0.7&text_only=false&llm_format=false&llm_provider=openai",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"search"
+							],
+							"query": [
+								{
+									"key": "collection_name",
+									"value": "documents",
+									"description": "Collection name to search in"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Maximum number of results"
+								},
+								{
+									"key": "hybrid_weight",
+									"value": "0.7",
+									"description": "Weight for hybrid search (0.0-1.0)"
+								},
+								{
+									"key": "text_only",
+									"value": "false",
+									"description": "Return only concatenated text content"
+								},
+								{
+									"key": "llm_format",
+									"value": "false",
+									"description": "Use LLM to format content based on query"
+								},
+								{
+									"key": "llm_provider",
+									"value": "openai",
+									"description": "LLM provider (openai only)"
+								}
+							]
+						},
+						"description": "Perform hybrid search combining vector similarity and keyword matching"
+					},
+					"response": []
+				},
+				{
+					"name": "Hybrid Search with LLM Formatting",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"query\": \"machine learning algorithms\",\n  \"filters\": {}\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/search?collection_name=documents&limit=5&hybrid_weight=0.7&text_only=false&llm_format=true&llm_provider=openai",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"search"
+							],
+							"query": [
+								{
+									"key": "collection_name",
+									"value": "documents",
+									"description": "Collection name to search in"
+								},
+								{
+									"key": "limit",
+									"value": "5",
+									"description": "Maximum number of results"
+								},
+								{
+									"key": "hybrid_weight",
+									"value": "0.7",
+									"description": "Weight for hybrid search (0.0-1.0)"
+								},
+								{
+									"key": "text_only",
+									"value": "false",
+									"description": "Return only concatenated text content"
+								},
+								{
+									"key": "llm_format",
+									"value": "true",
+									"description": "Use LLM to format content based on query"
+								},
+								{
+									"key": "llm_provider",
+									"value": "openai",
+									"description": "LLM provider (openai only)"
+								}
+							]
+						},
+						"description": "Perform hybrid search with LLM formatting applied to each result"
+					},
+					"response": []
+				},
+				{
+					"name": "Hybrid Search - Text Only Output",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"query\": \"machine learning algorithms\",\n  \"filters\": {}\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/search?collection_name=documents&limit=10&hybrid_weight=0.7&text_only=true&llm_format=false&llm_provider=openai",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"search"
+							],
+							"query": [
+								{
+									"key": "collection_name",
+									"value": "documents",
+									"description": "Collection name to search in"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Maximum number of results"
+								},
+								{
+									"key": "hybrid_weight",
+									"value": "0.7",
+									"description": "Weight for hybrid search (0.0-1.0)"
+								},
+								{
+									"key": "text_only",
+									"value": "true",
+									"description": "Return only concatenated text content"
+								},
+								{
+									"key": "llm_format",
+									"value": "false",
+									"description": "Use LLM to format content based on query"
+								},
+								{
+									"key": "llm_provider",
+									"value": "openai",
+									"description": "LLM provider (openai only)"
+								}
+							]
+						},
+						"description": "Perform hybrid search and return only concatenated text content"
+					},
+					"response": []
+				},
+				{
+					"name": "Hybrid Search - Text Only with LLM Formatting",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"query\": \"machine learning algorithms\",\n  \"filters\": {}\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/search?collection_name=documents&limit=10&hybrid_weight=0.7&text_only=true&llm_format=true&llm_provider=openai",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"search"
+							],
+							"query": [
+								{
+									"key": "collection_name",
+									"value": "documents",
+									"description": "Collection name to search in"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Maximum number of results"
+								},
+								{
+									"key": "hybrid_weight",
+									"value": "0.7",
+									"description": "Weight for hybrid search (0.0-1.0)"
+								},
+								{
+									"key": "text_only",
+									"value": "true",
+									"description": "Return only concatenated text content"
+								},
+								{
+									"key": "llm_format",
+									"value": "true",
+									"description": "Use LLM to format content based on query"
+								},
+								{
+									"key": "llm_provider",
+									"value": "openai",
+									"description": "LLM provider (openai only)"
+								}
+							]
+						},
+						"description": "Perform hybrid search, concatenate text, and format with LLM"
+					},
+					"response": []
+				},
+				{
+					"name": "Vector Search Only",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"query\": \"artificial intelligence\",\n  \"filters\": {\n    \"file_type\": \"pdf\"\n  }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/search/vector?collection_name=documents&limit=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"search",
+								"vector"
+							],
+							"query": [
+								{
+									"key": "collection_name",
+									"value": "documents",
+									"description": "Collection name to search in"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Maximum number of results"
+								}
+							]
+						},
+						"description": "Perform vector-only search using semantic similarity"
+					},
+					"response": []
+				},
+				{
+					"name": "Keyword Search Only",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"query\": \"neural networks deep learning\",\n  \"filters\": {\n    \"filename\": \"ai_research.pdf\"\n  }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/search/keyword?collection_name=documents&limit=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"search",
+								"keyword"
+							],
+							"query": [
+								{
+									"key": "collection_name",
+									"value": "documents",
+									"description": "Collection name to search in"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Maximum number of results"
+								}
+							]
+						},
+						"description": "Perform keyword-only search using MongoDB text search"
+					},
+					"response": []
+				}
+			],
+			"description": "Search endpoints for finding documents"
+		},
+		{
+			"name": "Collection Management",
+			"item": [
+				{
+					"name": "List Collections",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/collections",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"collections"
+							]
+						},
+						"description": "List all available collections"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Collection Stats",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/collections/{{collection_name}}/stats",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"collections",
+								"{{collection_name}}",
+								"stats"
+							]
+						},
+						"description": "Get statistics for a specific collection"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Collection",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/collections/{{collection_name}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"collections",
+								"{{collection_name}}"
+							]
+						},
+						"description": "Delete a collection and all its documents"
+					},
+					"response": []
+				}
+			],
+			"description": "Collection management endpoints"
+		},
+		{
+			"name": "Document Management",
+			"item": [
+				{
+					"name": "Get Document by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/documents/{{document_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"documents",
+								"{{document_id}}"
+							]
+						},
+						"description": "Get document metadata by ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Search Within Document",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"query\": \"machine learning\",\n  \"filters\": {}\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/documents/{{document_id}}/search?collection_name=documents&limit=10&text_only=false&llm_format=false&llm_provider=openai",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"documents",
+								"{{document_id}}",
+								"search"
+							],
+							"query": [
+								{
+									"key": "collection_name",
+									"value": "documents",
+									"description": "Collection name to search in"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Maximum number of results"
+								},
+								{
+									"key": "text_only",
+									"value": "false",
+									"description": "Return only concatenated text content"
+								},
+								{
+									"key": "llm_format",
+									"value": "false",
+									"description": "Use LLM to format content based on query"
+								},
+								{
+									"key": "llm_provider",
+									"value": "openai",
+									"description": "LLM provider (openai only)"
+								}
+							]
+						},
+						"description": "Search within a specific document by ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Search Within Document - Text Only",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"query\": \"machine learning\",\n  \"filters\": {}\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/documents/{{document_id}}/search?collection_name=documents&limit=10&text_only=true&llm_format=false&llm_provider=openai",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"documents",
+								"{{document_id}}",
+								"search"
+							],
+							"query": [
+								{
+									"key": "collection_name",
+									"value": "documents",
+									"description": "Collection name to search in"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Maximum number of results"
+								},
+								{
+									"key": "text_only",
+									"value": "true",
+									"description": "Return only concatenated text content"
+								},
+								{
+									"key": "llm_format",
+									"value": "false",
+									"description": "Use LLM to format content based on query"
+								},
+								{
+									"key": "llm_provider",
+									"value": "openai",
+									"description": "LLM provider (openai only)"
+								}
+							]
+						},
+						"description": "Search within a specific document and return only text content"
+					},
+					"response": []
+				},
+				{
+					"name": "Search Within Document - With LLM Formatting",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"query\": \"machine learning\",\n  \"filters\": {}\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/documents/{{document_id}}/search?collection_name=documents&limit=5&text_only=true&llm_format=true&llm_provider=openai",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"documents",
+								"{{document_id}}",
+								"search"
+							],
+							"query": [
+								{
+									"key": "collection_name",
+									"value": "documents",
+									"description": "Collection name to search in"
+								},
+								{
+									"key": "limit",
+									"value": "5",
+									"description": "Maximum number of results"
+								},
+								{
+									"key": "text_only",
+									"value": "true",
+									"description": "Return only concatenated text content"
+								},
+								{
+									"key": "llm_format",
+									"value": "true",
+									"description": "Use LLM to format content based on query"
+								},
+								{
+									"key": "llm_provider",
+									"value": "openai",
+									"description": "LLM provider (openai only)"
+								}
+							]
+						},
+						"description": "Search within a specific document, return text only, and format with LLM"
+					},
+					"response": []
+				}
+			],
+			"description": "Document retrieval and search endpoints"
+		},
+		{
+			"name": "Admin Operations",
+			"item": [
+				{
+					"name": "Reset All Collections",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/admin/reset",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"reset"
+							]
+						},
+						"description": "Reset/clear all collections and vector database"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Specific Collection",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/admin/collections/{{collection_name}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"collections",
+								"{{collection_name}}"
+							]
+						},
+						"description": "Delete a specific collection"
+					},
+					"response": []
+				}
+			],
+			"description": "Administrative operations for managing collections"
+		},
+		{
+			"name": "API Documentation",
+			"item": [
+				{
+					"name": "OpenAPI Schema",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/openapi.json",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"openapi.json"
+							]
+						},
+						"description": "Get OpenAPI schema for the API"
+					},
+					"response": []
+				},
+				{
+					"name": "Swagger UI",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/docs",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"docs"
+							]
+						},
+						"description": "Access interactive API documentation"
+					},
+					"response": []
+				}
+			],
+			"description": "API documentation endpoints"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8001",
+			"type": "string",
+			"description": "Base URL for the RAG Service API"
+		},
+		{
+			"key": "collection_name",
+			"value": "documents",
+			"type": "string",
+			"description": "Default collection name"
+		},
+		{
+			"key": "document_id",
+			"value": "",
+			"type": "string",
+			"description": "Document ID for testing (set after uploading a document)"
+		}
+	]
+}

@@ -1,0 +1,40 @@
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: rag_mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: rag_db
+    volumes:
+      - mongodb_data:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - rag_network
+
+  rag_service:
+    build: .
+    container_name: rag_service
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGODB_CONNECTION_STRING=mongodb://admin:password123@mongodb:27017/rag_db?authSource=admin
+      - DATABASE_NAME=rag_db
+    depends_on:
+      - mongodb
+    volumes:
+      - ./uploads:/app/uploads:rw
+    networks:
+      - rag_network
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  mongodb_data:
+
+networks:
+  rag_network:
+    driver: bridge

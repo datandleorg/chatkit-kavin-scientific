@@ -10,8 +10,157 @@ from xml_quote_generator import XMLQuoteGenerator
 async def test_quote_generation():
     """Test the quote generation functionality."""
     
-    # Sample product data (following the reference structure)
     sample_products = [
+    {
+        "name": "Spatula SS Spoon & Flat 6 inch",
+        "part": "4519",
+        "cas_number": "N/A",
+        "packing": "Each",
+        "price": 24,
+        "hs_code": "8205.59",
+        "tax": 18,
+        "quantity": 1
+    },
+    {
+        "name": "Spatula SS Spoon & Flat 8 inch",
+        "part": "4520",
+        "cas_number": "N/A",
+        "packing": "Each",
+        "price": 30,
+        "hs_code": "8205.59",
+        "tax": 18,
+        "quantity": 1
+    },
+    {
+        "name": "Spatula SS Spoon & Flat 10 inch",
+        "part": "4515",
+        "cas_number": "N/A",
+        "packing": "Each",
+        "price": 65,
+        "hs_code": "8205.59",
+        "tax": 18,
+        "quantity": 1
+    },
+    {
+        "name": "Spatula SS Spoon & Flat 12 inch",
+        "part": "4516",
+        "cas_number": "N/A",
+        "packing": "Each",
+        "price": 71,
+        "hs_code": "8205.59",
+        "tax": 18,
+        "quantity": 1
+    },
+    {
+        "name": "Spatula Polypropylene 6 inch",
+        "part": "5655",
+        "cas_number": "N/A",
+        "packing": "Each",
+        "price": 12,
+        "hs_code": "3926.90",
+        "tax": 18,
+        "quantity": 1
+    },
+     {
+        "name": "Spatula Polypropylene 6 inch",
+        "part": "5655",
+        "cas_number": "N/A",
+        "packing": "Each",
+        "price": 12,
+        "hs_code": "3926.90",
+        "tax": 18,
+        "quantity": 1
+    },
+     {
+        "name": "Spatula Polypropylene 6 inch",
+        "part": "5655",
+        "cas_number": "N/A",
+        "packing": "Each",
+        "price": 12,
+        "hs_code": "3926.90",
+        "tax": 18,
+        "quantity": 1
+    },
+    {
+        "name": "Spatula Polypropylene 8 inch",
+        "part": "5656",
+        "cas_number": "N/A",
+        "packing": "Each",
+        "price": 14,
+        "hs_code": "3926.90",
+        "tax": 18,
+        "quantity": 1
+    },
+    {
+        "name": "Spatula Nickel-Plated 6 inch",
+        "part": "4531",
+        "cas_number": "N/A",
+        "packing": "Each",
+        "price": 46,
+        "hs_code": "8205.59",
+        "tax": 18,
+        "quantity": 1
+    },
+    {
+        "name": "Ointment Spatula 6 inch (SS blade, wooden handle)",
+        "part": "4534",
+        "cas_number": "N/A",
+        "packing": "Each",
+        "price": 72,
+        "hs_code": "8205.59",
+        "tax": 18,
+        "quantity": 1
+    },
+    {
+        "name": "Plastic Spatula (Polylab) 150mm - Pack of 12",
+        "part": "81301",
+        "cas_number": "N/A",
+        "packing": "Pack of 12",
+        "price": 90,
+        "hs_code": "3926.90",
+        "tax": 18,
+        "quantity": 1
+    },
+    {
+        "name": "Plastic Spatula (Polylab) 200mm - Pack of 12",
+        "part": "81302",
+        "cas_number": "N/A",
+        "packing": "Pack of 12",
+        "price": 114,
+        "hs_code": "3926.90",
+        "tax": 18,
+        "quantity": 1
+    },   {
+        "name": "Plastic Spatula (Polylab) 200mm - Pack of 12",
+        "part": "81302",
+        "cas_number": "N/A",
+        "packing": "Pack of 12",
+        "price": 114,
+        "hs_code": "3926.90",
+        "tax": 18,
+        "quantity": 1
+    },   {
+        "name": "Plastic Spatula (Polylab) 200mm - Pack of 12",
+        "part": "81302",
+        "cas_number": "N/A",
+        "packing": "Pack of 12",
+        "price": 114,
+        "hs_code": "3926.90",
+        "tax": 18,
+        "quantity": 1
+    },   {
+        "name": "Plastic Spatula (Polylab) 200mm - Pack of 12",
+        "part": "81302",
+        "cas_number": "N/A",
+        "packing": "Pack of 12",
+        "price": 114,
+        "hs_code": "3926.90",
+        "tax": 18,
+        "quantity": 1
+    }
+]
+    # Sample product data (following the reference structure)
+    sample_products11 = [
         {
             "name": "Sodium Chloride pure, 97%",
             "cas_number": "7647-14-5",  # Used as catno
@@ -43,7 +192,7 @@ async def test_quote_generation():
     
     try:
         # Test the generator
-        generator = XMLQuoteGenerator("/Users/saravanan/openai-agentkit-demo/mcp/quote.xlsx")
+        generator = XMLQuoteGenerator("/Users/saravanan/kavin/chatkit-kavin-scientific/mcp/quote.xlsx")
         output_path = generator.generate_quote(sample_products, "test_quote")
         
         print(f"✅ Test successful! Quote generated at: {output_path}")
