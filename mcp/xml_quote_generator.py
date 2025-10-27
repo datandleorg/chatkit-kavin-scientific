@@ -9,6 +9,7 @@ import os
 import shutil
 import zipfile
 import tempfile
+import copy
 from typing import List, Dict, Any
 import xml.etree.ElementTree as ET
 
@@ -33,7 +34,7 @@ class XMLQuoteGenerator:
             if not file_name.endswith('.xlsx'):
                 file_name += '.xlsx'
             
-            output_path = os.path.join("/Users/saravanan/openai-agentkit-demo/mcp", file_name)
+            output_path = os.path.join("/Users/saravanan/kavin/chatkit-kavin-scientific/mcp", file_name)
             
             # Create temporary directory
             temp_dir = tempfile.mkdtemp()
@@ -94,11 +95,22 @@ class XMLQuoteGenerator:
             print("SheetData not found")
             return
         
-        # Clear existing product data rows (rows 15-22)
-        self._clear_product_rows(sheet_data, 15, 22)
+        # Find and store ALL content after row 23 before clearing
+        content_after_23 = self._extract_all_rows_after(sheet_data, 23)
         
-        # Insert new product data
-        self._insert_product_rows(sheet_data, products)
+        # Clear existing rows (rows 15-23)
+        self._clear_product_rows(sheet_data, 15, 23)
+        
+        # Insert new product data and get the ending row
+        last_product_row, total_gamt = self._insert_product_rows(sheet_data, products)
+        
+        # Insert total row
+        total_row_num = last_product_row + 1
+        self._insert_total_row(sheet_data, total_row_num, total_gamt)
+        
+        # Move all content after the total row
+        if content_after_23:
+            self._insert_moved_content(sheet_data, total_row_num + 1, content_after_23)
         
         # Write back to file with proper formatting
         tree.write(worksheet_path, encoding='utf-8', xml_declaration=True)
@@ -119,8 +131,8 @@ class XMLQuoteGenerator:
         
         print(f"Removed {len(rows_to_remove)} rows")
     
-    def _insert_product_rows(self, sheet_data, products: List[Dict[str, Any]]):
-        """Insert new product rows into the sheet."""
+    def _insert_product_rows(self, sheet_data, products: List[Dict[str, Any]]) -> tuple:
+        """Insert new product rows into the sheet. Returns (last_row_num, total_gamt)."""
         print(f"Inserting {len(products)} products")
         
         current_row = 15
@@ -157,6 +169,7 @@ class XMLQuoteGenerator:
             current_row += 1
         
         print(f"Total G.Amt: ${total_gamt:.2f}")
+        return current_row - 1, total_gamt  # Return last row number and total
     
     def _create_row_element(self, row_num: int, sno, name, catno, hsn, brand, unit,
                            rate, dis, discounted_rate, qty, amount, gst, gval, gamt):
@@ -194,6 +207,80 @@ class XMLQuoteGenerator:
             is_elem = ET.SubElement(cell, f'{{{self.NS["main"]}}}is')
             t = ET.SubElement(is_elem, f'{{{self.NS["main"]}}}t')
             t.text = str(value) if value is not None else ''
+    
+    def _extract_all_rows_after(self, sheet_data, after_row: int) -> list:
+        """Extract ALL rows after the specified row number."""
+        rows_after = []
+        print(f"Extracting all rows after row {after_row}...")
+        
+        for row in sheet_data.findall(f'.//{{{self.NS["main"]}}}row'):
+            row_num = int(row.get('r', '0'))
+            if row_num > after_row:  # All rows after the specified row
+                # Deep copy the row to preserve it after clearing
+                row_copy = copy.deepcopy(row)
+                rows_after.append((row_num, row_copy))
+        
+        # Sort by original row number
+        rows_after.sort(key=lambda x: x[0])
+        print(f"Found {len(rows_after)} rows after row {after_row}")
+        return rows_after
+    
+    def _insert_total_row(self, sheet_data, row_num: int, total_amount: float):
+        """Insert a total row with summary information."""
+        print(f"Inserting total row at row {row_num}")
+        
+        total_row = ET.Element(f'{{{self.NS["main"]}}}row', r=str(row_num))
+        
+        # Add cells for total row
+        # Column A: "Total" label
+        self._add_cell(total_row, 'A', row_num, 'TOTAL', 's')
+        
+        # Columns B-F: Empty or labels
+        # Column N: Total grand amount
+        self._add_cell(total_row, 'N', row_num, round(total_amount, 2), 'n')
+        
+        # Insert the total row
+        self._insert_row_in_order(sheet_data, total_row, row_num)
+    
+    def _insert_moved_content(self, sheet_data, start_row: int, rows_data: list):
+        """Insert moved content rows starting at the given row."""
+        print(f"Inserting moved content starting at row {start_row}")
+        
+        current_row = start_row
+        for original_row_num, row_element in rows_data:
+            # Create a new row element
+            new_row = ET.Element(row_element.tag)
+            
+            # Update row number
+            new_row.set('r', str(current_row))
+            
+            # Copy and update all cell references in this row
+            for cell in row_element:
+                # Create a new cell
+                cell_ref = cell.get('r', '')
+                if cell_ref:
+                    # Extract column letter and update row number
+                    col_letter = ''.join([c for c in cell_ref if c.isalpha()])
+                    new_cell = ET.Element(cell.tag, {'r': f"{col_letter}{current_row}"})
+                else:
+                    new_cell = ET.Element(cell.tag, cell.attrib)
+                
+                # Copy cell attributes
+                for attr_name, attr_value in cell.attrib.items():
+                    if attr_name != 'r':
+                        new_cell.set(attr_name, attr_value)
+                
+                # Copy cell content
+                for child in cell:
+                    new_cell.append(child)
+                
+                new_row.append(new_cell)
+            
+            # Insert the row
+            self._insert_row_in_order(sheet_data, new_row, current_row)
+            current_row += 1
+        
+        print(f"Moved content inserted ({len(rows_data)} rows)")
     
     def _insert_row_in_order(self, sheet_data, new_row, row_num: int):
         """Insert row in the correct position to maintain order."""
@@ -241,7 +328,7 @@ if __name__ == "__main__":
     ]
     
     try:
-        generator = XMLQuoteGenerator("/Users/saravanan/openai-agentkit-demo/mcp/quote.xlsx")
+        generator = XMLQuoteGenerator("/Users/saravanan/kavin/chatkit-kavin-scientific/mcp/quote.xlsx")
         output_path = generator.generate_quote(sample_products, "xml_generated_quote")
         
         # Verify images are preserved

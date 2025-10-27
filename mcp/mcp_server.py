@@ -1,6 +1,6 @@
 import asyncio
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import httpx
 import boto3
@@ -11,8 +11,8 @@ from mcp.server.fastmcp import FastMCP
 # --- Quote Generator Server Setup ---
 
 # Template file path and output directory
-TEMPLATE_PATH = "/Users/saravanan/openai-agentkit-demo/mcp/quote.xlsx"
-OUTPUT_DIR = "/Users/saravanan/openai-agentkit-demo/mcp"
+TEMPLATE_PATH = "/Users/saravanan/kavin/chatkit-kavin-scientific/mcp/quote.xlsx"
+OUTPUT_DIR = "/Users/saravanan/kavin/chatkit-kavin-scientific/mcp"
 
 # DigitalOcean Spaces configuration
 DO_ACCESS_KEY = "DO00DK7ZU22GLQVH767D"
@@ -51,10 +51,13 @@ def upload_to_do_spaces(file_path: str, file_name: str) -> str:
     except Exception as e:
         raise Exception(f"Failed to upload to DigitalOcean Spaces: {str(e)}")
 
-# Initialize MCP server for quote generation
+# --- RAG Service Configuration ---
+RAG_SERVICE_URL = "http://localhost:8001"
+
+# Initialize MCP server for quote generation and file search
 mcp = FastMCP(
     name="quote-generator",
-    instructions="A server that generates Excel quotes for products"
+    instructions="A server that generates Excel quotes for products and provides file search capabilities"
 )
 
 # Tool: Generate Excel quote for a list of products
@@ -69,6 +72,10 @@ async def generate_quote_for_products(
         products: List of product dicts with required fields.
         file_name: Desired filename for the generated Excel quote.
     """
+
+    print(products)
+    print(file_name)
+
     # Validate inputs
     if not products:
         return "Products list cannot be empty"
@@ -127,6 +134,140 @@ async def generate_quote_for_products(
         )
     except Exception as e:
         return f"Error generating quote: {str(e)}"
+
+# Tool: Search files using RAG service
+@mcp.tool()
+async def file_search(
+    query: str,
+) -> str:
+    """
+    Search through uploaded documents using the RAG service.
+    Returns formatted text-only results based on the search query.
+    
+    Args:
+        query: The search query to find relevant content
+        collection_name: Collection to search in (default: "documents")
+        limit: Maximum number of results to return (default: 10)
+        document_id: Optional specific document ID to search within
+    """
+    try:
+        # Prepare the search request
+        search_data = {
+            "query": query,
+            "filters": {}
+        }
+        
+        # Determine the endpoint based on whether we're searching a specific document
+        # if document_id:
+        #     endpoint = f"{RAG_SERVICE_URL}/documents/{document_id}/search"
+        # else:
+        endpoint = f"{RAG_SERVICE_URL}/search"
+
+        text_only = True
+        
+        # Prepare query parameters
+        params = {
+            "collection_name": "documents",
+            "limit": 10,
+            "text_only": text_only,
+            "llm_format": False,
+            "llm_provider": "openai"
+        }
+        print(params)
+        # Make the request to RAG service
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                endpoint,
+                json=search_data,
+                params=params
+            )
+
+            
+            if response.status_code == 200:
+                result = response.json()
+   
+                if text_only:
+                    # Return formatted content if available, otherwise text content
+                    content = result.get('formatted_content') or result.get('text_content', '')
+                    
+                    if content:
+                        return content
+                    else:
+                        return f"No relevant content found for query: '{query}'"
+                else:
+                    # Return structured results as plain text
+                    results = result.get('results', [])
+                    if results:
+                        formatted_results = []
+                        for i, res in enumerate(results, 1):
+                            text = res.get('formatted_text') or res.get('text', '')
+                            score = res.get('score', 0)
+                            formatted_results.append(f"Result {i} (Score: {score:.3f}): {text}")
+                        
+                        return "\n\n".join(formatted_results)
+                    else:
+                        return f"No results found for query: '{query}'"
+                        
+            elif response.status_code == 404:
+                return f"Document not found: {document_id}" if document_id else "No documents found in collection"
+            else:
+                error_detail = response.json().get('detail', 'Unknown error') if response.headers.get('content-type', '').startswith('application/json') else response.text
+                return f"Search failed: {error_detail}"
+                
+    except httpx.TimeoutException:
+        return "Search request timed out. Please try again."
+    except httpx.ConnectError:
+        return f"Could not connect to RAG service at {RAG_SERVICE_URL}. Please ensure the service is running."
+    except Exception as e:
+        return f"Error during file search: {str(e)}"
+
+# Tool: Get document information
+@mcp.tool()
+async def get_document_info(document_id: str) -> str:
+    """
+    Get information about a specific document by its ID.
+    
+    Args:
+        document_id: The unique identifier of the document
+    """
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(f"{RAG_SERVICE_URL}/documents/{document_id}")
+            
+            if response.status_code == 200:
+                doc_info = response.json()
+                return f"**Document Information**\n\n**ID:** {document_id}\n**Filename:** {doc_info.get('filename', 'Unknown')}\n**Chunks:** {doc_info.get('chunks_count', 0)}\n**Collection:** {doc_info.get('collection_name', 'Unknown')}"
+            elif response.status_code == 404:
+                return f"Document not found: {document_id}"
+            else:
+                return f"Error retrieving document info: {response.text}"
+                
+    except Exception as e:
+        return f"Error getting document information: {str(e)}"
+
+# Tool: List available collections
+@mcp.tool()
+async def list_collections() -> str:
+    """
+    List all available document collections in the RAG service.
+    """
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(f"{RAG_SERVICE_URL}/collections")
+            
+            if response.status_code == 200:
+                collections_data = response.json()
+                collections = collections_data.get('collections', [])
+                
+                if collections:
+                    return f"**Available Collections:**\n\n" + "\n".join(f"- {col}" for col in collections)
+                else:
+                    return "No collections found. Upload some documents first."
+            else:
+                return f"Error listing collections: {response.text}"
+                
+    except Exception as e:
+        return f"Error listing collections: {str(e)}"
 
 # --- FastAPI App with SSE ---
 
