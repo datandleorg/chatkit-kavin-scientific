@@ -4,7 +4,7 @@ A FastAPI-based service for document ingestion and hybrid search using Docling f
 
 ## Features
 
-- **Document Processing**: Extract text from PDF, DOCX, and TXT files using Docling
+- **Document Processing**: Extract text from PDF, DOCX, TXT, Excel, and CSV files using Docling, openpyxl, and pandas
 - **Vector Search**: Semantic similarity search using sentence transformers
 - **Text Search**: Full-text search using MongoDB's text search capabilities
 - **Hybrid Search**: Combines vector and text search with configurable weights
@@ -68,7 +68,7 @@ A FastAPI-based service for document ingestion and hybrid search using Docling f
 ### Document Ingestion
 
 **POST** `/ingest`
-- Upload and process documents (PDF, DOCX, TXT)
+- Upload and process documents (PDF, DOCX, TXT, XLSX, XLS, CSV)
 - Parameters:
   - `file`: Document file
   - `collection_name`: MongoDB collection name (default: "documents")
@@ -112,9 +112,18 @@ curl -X POST "http://localhost:8000/search" \
 
 ### Collection Management
 
+**POST** `/collections` - Create a new collection
+- Parameters:
+  - `collection_name`: Name of the collection to create
+
 **GET** `/collections` - List all collections
 **GET** `/collections/{name}/stats` - Get collection statistics
 **DELETE** `/collections/{name}` - Delete a collection
+
+**Example - Create Collection:**
+```bash
+curl -X POST "http://localhost:8001/collections?collection_name=my_new_collection"
+```
 
 ### Document Management
 
@@ -141,9 +150,11 @@ The service connects to MongoDB using the following default configuration:
 
 ### Supported Formats
 
-- **PDF**: Processed using Docling for high-quality text extraction
+- **PDF**: Processed using Docling for high-quality text extraction with pypdf fallback for problematic PDFs
 - **DOCX**: Processed using python-docx
 - **TXT**: Direct text reading
+- **XLSX/XLS**: Processed using openpyxl with formula extraction and multi-sheet support
+- **CSV**: Processed using pandas with automatic encoding detection and proper delimiter handling
 
 ### Text Chunking
 
