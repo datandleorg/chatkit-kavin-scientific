@@ -103,11 +103,11 @@ async def ingest_document(
     chunk_overlap: int = Query(default=200, description="Overlap between chunks")
 ):
     """
-    Ingest a document (PDF, DOCX, TXT) and store it in the vector database
+    Ingest a document (PDF, DOCX, TXT, XLSX, XLS, CSV) and store it in the vector database
     """
     try:
         # Validate file type
-        allowed_types = [".pdf", ".docx", ".txt"]
+        allowed_types = [".pdf", ".docx", ".txt", ".xlsx", ".xls", ".csv"]
         file_extension = Path(file.filename).suffix.lower()
         
         if file_extension not in allowed_types:
@@ -227,6 +227,41 @@ async def search_documents(
     except Exception as e:
         logger.error(f"Search failed: {e}")
         raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+
+@app.post("/collections")
+async def create_collection(collection_name: str = Query(..., description="Name of the collection to create")):
+    """Create a new collection with proper indexes"""
+    try:
+        logger.info(f"Creating collection: {collection_name}")
+        
+        # Validate collection name
+        if not collection_name or not collection_name.strip():
+            raise HTTPException(status_code=400, detail="Collection name cannot be empty")
+        
+        # MongoDB collection name restrictions
+        if ' ' in collection_name or collection_name.startswith('$'):
+            raise HTTPException(status_code=400, detail="Invalid collection name")
+        
+        success = await vector_store.create_collection(collection_name)
+        
+        if success:
+            return {
+                "message": f"Collection '{collection_name}' created successfully",
+                "collection_name": collection_name,
+                "status": "created"
+            }
+        else:
+            return {
+                "message": f"Collection '{collection_name}' already exists",
+                "collection_name": collection_name,
+                "status": "exists"
+            }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to create collection: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create collection: {str(e)}")
 
 @app.get("/collections")
 async def list_collections():

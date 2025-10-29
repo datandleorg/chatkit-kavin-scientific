@@ -145,7 +145,7 @@ class HybridSearch:
             metadata = result["metadata"]
             citation = {
                 "document_id": result["document_id"],
-                "filename": metadata.get("filename", "Unknown"),
+                "filename": metadata.get("metadata", {}).get("filename", "Unknown"),
                 "page_number": metadata.get("page_number"),
                 "chunk_index": result["chunk_index"],
                 "start_char": metadata.get("start_char"),
@@ -184,13 +184,28 @@ class HybridSearch:
             # Format results for consistency
             formatted_results = []
             for result in results:
+                
+                metadata = result["metadata"]
+
+                citation = {
+                    "document_id": result["document_id"],
+                    "filename": metadata.get("metadata", {}).get("filename", "Unknown"),
+                    "page_number": metadata.get("page_number"),
+                    "chunk_index": result["chunk_index"],
+                    "start_char": metadata.get("start_char"),
+                    "end_char": metadata.get("end_char"),
+                    "document_type": metadata.get("file_type"),
+                    "ingestion_date": metadata.get("ingestion_date")
+                }
+                
                 formatted_results.append({
                     "document_id": result["document_id"],
                     "chunk_index": result["chunk_index"],
                     "text": result["text"],
                     "score": result["score"],
                     "search_type": "vector",
-                    "metadata": result["metadata"]
+                    "metadata": result["metadata"],
+                    "citation": citation
                 })
             
             return formatted_results
@@ -218,13 +233,26 @@ class HybridSearch:
             # Format results for consistency
             formatted_results = []
             for result in results:
+                metadata = result["metadata"]
+                citation = {
+                    "document_id": result["document_id"],
+                    "filename": metadata.get("metadata", {}).get("filename", "Unknown"),
+                    "page_number": metadata.get("page_number"),
+                    "chunk_index": result["chunk_index"],
+                    "start_char": metadata.get("start_char"),
+                    "end_char": metadata.get("end_char"),
+                    "document_type": metadata.get("file_type"),
+                    "ingestion_date": metadata.get("ingestion_date")
+                }
+                
                 formatted_results.append({
                     "document_id": result["document_id"],
                     "chunk_index": result["chunk_index"],
                     "text": result["text"],
                     "score": result["score"],
                     "search_type": "keyword",
-                    "metadata": result["metadata"]
+                    "metadata": result["metadata"],
+                    "citation": citation
                 })
             
             return formatted_results

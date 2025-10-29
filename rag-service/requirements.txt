@@ -6,6 +6,9 @@ python-multipart>=0.0.6
 # Document processing with Docling-parse
 docling-parse>=4.7.0
 python-docx>=0.8.11
+openpyxl>=3.1.2
+pandas>=2.0.0
+pypdf>=3.0.0
 
 # Vector database and embeddings
 pymongo>=4.6.0

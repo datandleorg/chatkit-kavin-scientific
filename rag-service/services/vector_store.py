@@ -279,6 +279,45 @@ class VectorStore:
             logger.error(f"Text search failed: {e}")
             raise
     
+    async def create_collection(self, collection_name: str) -> bool:
+        """Create a new collection with indexes"""
+        try:
+            # Check if collection already exists
+            existing_collections = await self.db.list_collection_names()
+            if collection_name in existing_collections:
+                logger.warning(f"Collection {collection_name} already exists")
+                return False
+            
+            # Create collection by inserting and deleting a dummy document
+            await self.db[collection_name].insert_one({
+                "_temp": True,
+                "created_at": datetime.now()
+            })
+            await self.db[collection_name].delete_one({"_temp": True})
+            
+            # Create indexes for the new collection
+            await self.db[collection_name].create_index([
+                ("text", "text"),
+                ("filename", "text")
+            ])
+            
+            await self.db[collection_name].create_index([
+                ("document_id", ASCENDING),
+                ("chunk_index", ASCENDING)
+            ])
+            
+            await self.db[collection_name].create_index([
+                ("filename", ASCENDING),
+                ("created_at", DESCENDING)
+            ])
+            
+            logger.info(f"Created collection: {collection_name}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to create collection {collection_name}: {e}")
+            raise
+    
     async def list_collections(self) -> List[str]:
         """List all collections"""
         try:

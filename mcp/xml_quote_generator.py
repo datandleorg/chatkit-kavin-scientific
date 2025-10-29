@@ -185,16 +185,30 @@ class XMLQuoteGenerator:
         self._add_cell(row, 'F', row_num, unit, 's')  # Unit (string)
         self._add_cell(row, 'G', row_num, rate, 'n')  # Rate (number)
         self._add_cell(row, 'H', row_num, dis, 'n')  # Discount (number)
-        self._add_cell(row, 'I', row_num, discounted_rate, 'n')  # Discounted Rate (number)
+        
+        # I column: Discounted Rate = G*(1-H)
+        self._add_cell(row, 'I', row_num, discounted_rate, 'n', 
+                      formula=f'G{row_num}*(1-H{row_num})')
+        
         self._add_cell(row, 'J', row_num, qty, 'n')  # Qty (number)
-        self._add_cell(row, 'K', row_num, amount, 'n')  # Amount (number)
+        
+        # K column: Amount = I*J (Discounted Rate * Qty)
+        self._add_cell(row, 'K', row_num, amount, 'n', 
+                      formula=f'I{row_num}*J{row_num}')
+        
         self._add_cell(row, 'L', row_num, gst, 'n')  # GST (number)
-        self._add_cell(row, 'M', row_num, gval, 'n')  # G.Val (number)
-        self._add_cell(row, 'N', row_num, gamt, 'n')  # G.Amt (number)
+        
+        # M column: G.Val = K*L (Amount * GST)
+        self._add_cell(row, 'M', row_num, gval, 'n', 
+                      formula=f'K{row_num}*L{row_num}')
+        
+        # N column: G.Amt = K+M (Amount + G.Val)
+        self._add_cell(row, 'N', row_num, gamt, 'n', 
+                      formula=f'K{row_num}+M{row_num}')
         
         return row
     
-    def _add_cell(self, row, col_letter: str, row_num: int, value, cell_type: str = 's'):
+    def _add_cell(self, row, col_letter: str, row_num: int, value, cell_type: str = 's', formula: str = None):
         """Add a cell to a row element."""
         cell = ET.SubElement(row, f'{{{self.NS["main"]}}}c', r=f"{col_letter}{row_num}")
         
@@ -235,9 +249,15 @@ class XMLQuoteGenerator:
         # Column A: "Total" label
         self._add_cell(total_row, 'A', row_num, 'TOTAL', 's')
         
-        # Columns B-F: Empty or labels
-        # Column N: Total grand amount
-        self._add_cell(total_row, 'N', row_num, round(total_amount, 2), 'n')
+        # Find the range of product rows for the SUM formula
+        # Assuming products start at row 15 and go up to row_num-1
+        start_row = 15
+        end_row = row_num - 1
+        
+        # Column N: Total grand amount with SUM formula
+        sum_formula = f'SUM(N{start_row}:N{end_row})'
+        self._add_cell(total_row, 'N', row_num, round(total_amount, 2), 'n', 
+                      formula=sum_formula)
         
         # Insert the total row
         self._insert_row_in_order(sheet_data, total_row, row_num)

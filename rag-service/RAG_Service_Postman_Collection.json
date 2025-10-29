@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "rag-service-api-collection",
 		"name": "RAG Service API",
-		"description": "Complete API collection for RAG Service with document ingestion and hybrid search capabilities",
+		"description": "Complete API collection for RAG Service with document ingestion and hybrid search capabilities. Supports PDF, DOCX, TXT, Excel, and CSV files. Features include vector search, keyword search, hybrid search, LLM formatting, and collection management.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "rag-service"
 	},
@@ -64,7 +64,7 @@
 									"key": "file",
 									"type": "file",
 									"src": [],
-									"description": "Document file (PDF, DOCX, TXT)"
+									"description": "Document file (PDF, DOCX, TXT, XLSX, XLS, CSV)"
 								},
 								{
 									"key": "collection_name",
@@ -112,7 +112,7 @@
 								}
 							]
 						},
-						"description": "Upload and process a document (PDF, DOCX, TXT) for ingestion into the vector database"
+						"description": "Upload and process a document (PDF, DOCX, TXT, XLSX, XLS, CSV) for ingestion into the vector database"
 					},
 					"response": []
 				}
@@ -474,6 +474,31 @@
 		{
 			"name": "Collection Management",
 			"item": [
+				{
+					"name": "Create Collection",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/collections?collection_name=my_new_collection",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"collections"
+							],
+							"query": [
+								{
+									"key": "collection_name",
+									"value": "my_new_collection",
+									"description": "Name of the collection to create"
+								}
+							]
+						},
+						"description": "Create a new collection with proper indexes for optimal search performance"
+					},
+					"response": []
+				},
 				{
 					"name": "List Collections",
 					"request": {
