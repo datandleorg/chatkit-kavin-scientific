@@ -103,11 +103,12 @@ async def ingest_document(
     chunk_overlap: int = Query(default=200, description="Overlap between chunks")
 ):
     """
-    Ingest a document (PDF, DOCX, TXT, XLSX, XLS, CSV) and store it in the vector database
+    Ingest a document (PDF, DOCX, TXT, MD, XLSX, XLS, CSV) and store it in the vector database
+    Supports multimodal RAG for markdown files with embedded images
     """
     try:
         # Validate file type
-        allowed_types = [".pdf", ".docx", ".txt", ".xlsx", ".xls", ".csv"]
+        allowed_types = [".pdf", ".docx", ".txt", ".md", ".xlsx", ".xls", ".csv"]
         file_extension = Path(file.filename).suffix.lower()
         
         if file_extension not in allowed_types:
@@ -154,7 +155,8 @@ async def ingest_document(
             filename=file.filename,
             chunks_count=len(document_data["chunks"]),
             collection_name=collection_name,
-            status="success"
+            status="success",
+            metadata=document_data.get("metadata", {})
         )
         
     except Exception as e:
@@ -169,33 +171,56 @@ async def search_documents(
     request: SearchRequest,
     collection_name: str = Query(default="documents", description="Collection name to search in"),
     limit: int = Query(default=10, description="Maximum number of results"),
-    hybrid_weight: float = Query(default=0.7, description="Weight for hybrid search (0.0-1.0)"),
+    score_threshold: float = Query(default=0.0, description="Minimum score threshold (0.0-1.0)"),
+    document_id: str = Query(default=None, description="Optional document ID to search within a specific document only"),
+    result_type: str = Query(default=None, description="Filter results by type: 'text', 'image', or None for all"),
     text_only: bool = Query(default=False, description="Return only concatenated text content"),
     llm_format: bool = Query(default=False, description="Use LLM to format content based on query"),
     llm_provider: str = Query(default="openai", description="LLM provider (openai only)")
 ):
     """
     Perform hybrid search combining vector similarity and keyword matching
-    with optional LLM formatting and text-only output
+    with optional LLM formatting and text-only output.
+    Optionally search within a specific document by providing document_id.
+    Can filter results to only return text or image results using result_type parameter.
     """
     try:
-        if hybrid_weight < 0.0 or hybrid_weight > 1.0:
+        if score_threshold < 0.0 or score_threshold > 1.0:
             raise HTTPException(
                 status_code=400,
-                detail="hybrid_weight must be between 0.0 and 1.0"
+                detail="score_threshold must be between 0.0 and 1.0"
             )
         
-        logger.info(f"Performing hybrid search for query: {request.query}")
+        # Validate result_type if provided
+        if result_type is not None and result_type not in ['text', 'image']:
+            raise HTTPException(
+                status_code=400,
+                detail="result_type must be either 'text' or 'image'"
+            )
+        
+        # Validate document_id if provided
+        if document_id:
+            # Verify document exists
+            doc = await vector_store.get_document(document_id, collection_name)
+            if not doc:
+                raise HTTPException(status_code=404, detail=f"Document with ID '{document_id}' not found")
+            logger.info(f"Searching within document {document_id} for query: {request.query}")
+        else:
+            logger.info(f"Performing hybrid search for query: {request.query}")
         
         # Perform hybrid search
         search_results = await hybrid_search.search(
             query=request.query,
             collection_name=collection_name,
             limit=limit,
-            vector_weight=hybrid_weight,
-            keyword_weight=1.0 - hybrid_weight,
+            score_threshold=score_threshold,
+            document_id=document_id,
             filters=request.filters
         )
+        
+        # Filter by result type if specified
+        if result_type:
+            search_results = [r for r in search_results if r.get('type') == result_type]
         
         # Apply LLM formatting and text-only options
         formatted_results = await llm_service.format_search_results(

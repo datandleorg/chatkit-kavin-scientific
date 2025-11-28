@@ -141,38 +141,74 @@ class XMLQuoteGenerator:
         for i, product in enumerate(products, 1):
             # Extract and calculate product data
             sno = i
-            name = product.get('name', '')
-            catno = product.get('cas_number', '')
-            hsn = product.get('hs_code', '')
-            brand = product.get('part', '')
-            unit = product.get('packing', '')
-            rate = float(product.get('price', 0))
-            dis = float(product.get('tax', 0)) / 100
-            qty = 1
-            gst = 0.18
-            
+            name = product.get("name", "")
+            catno = (
+                product.get("catalog_number")
+                or product.get("cat_number")
+                or product.get("cas_number", "")
+            )
+            hsn = product.get("hs_code", "")
+            brand = product.get("brand") or product.get("part", "")
+            unit = product.get("packing", "")
+            rate = float(product.get("price", 0) or 0)
+            qty = float(product.get("quantity", 1) or 1)
+
+            discount_percent = float(product.get("discount", 0) or 0)
+            tax_percent = float(product.get("tax", 0) or 0)
+
             # Calculate derived fields
-            discounted_rate = rate * (1 - dis)
+            discounted_rate = rate * (1 - discount_percent / 100)
             amount = discounted_rate * qty
-            gval = amount * gst
-            gamt = amount + gval
-            total_gamt += gamt
-            
+            tax_amount = amount * (tax_percent / 100)
+            grand_total = amount + tax_amount
+            total_gamt += grand_total
+
             # Create row element
-            row = self._create_row_element(current_row, sno, name, catno, hsn, brand, unit,
-                                          rate, dis, discounted_rate, qty, amount, gst, gval, gamt)
+            row = self._create_row_element(
+                current_row,
+                sno,
+                name,
+                catno,
+                hsn,
+                brand,
+                unit,
+                rate,
+                discount_percent,
+                discounted_rate,
+                qty,
+                amount,
+                tax_percent,
+                tax_amount,
+                grand_total,
+            )
             
             # Find the correct position to insert (maintain row order)
             self._insert_row_in_order(sheet_data, row, current_row)
             
-            print(f"  Inserted product {i}: {name}")
+            print(f"  Inserted product {i}: {product}")
             current_row += 1
         
         print(f"Total G.Amt: ${total_gamt:.2f}")
         return current_row - 1, total_gamt  # Return last row number and total
     
-    def _create_row_element(self, row_num: int, sno, name, catno, hsn, brand, unit,
-                           rate, dis, discounted_rate, qty, amount, gst, gval, gamt):
+    def _create_row_element(
+        self,
+        row_num: int,
+        sno,
+        name,
+        catno,
+        hsn,
+        brand,
+        unit,
+        rate,
+        discount_percent,
+        discounted_rate,
+        qty,
+        amount,
+        tax_percent,
+        tax_amount,
+        grand_total,
+    ):
         """Create a row element with all product data."""
         row = ET.Element(f'{{{self.NS["main"]}}}row', r=str(row_num))
         
@@ -184,7 +220,7 @@ class XMLQuoteGenerator:
         self._add_cell(row, 'E', row_num, brand, 's')  # Brand (string)
         self._add_cell(row, 'F', row_num, unit, 's')  # Unit (string)
         self._add_cell(row, 'G', row_num, rate, 'n')  # Rate (number)
-        self._add_cell(row, 'H', row_num, dis, 'n')  # Discount (number)
+        self._add_cell(row, 'H', row_num, discount_percent / 100, 'n')  # Discount (ratio)
         
         # I column: Discounted Rate = G*(1-H)
         self._add_cell(row, 'I', row_num, discounted_rate, 'n', 
@@ -196,14 +232,14 @@ class XMLQuoteGenerator:
         self._add_cell(row, 'K', row_num, amount, 'n', 
                       formula=f'I{row_num}*J{row_num}')
         
-        self._add_cell(row, 'L', row_num, gst, 'n')  # GST (number)
+        self._add_cell(row, 'L', row_num, tax_percent / 100, 'n')  # Tax rate (ratio)
         
         # M column: G.Val = K*L (Amount * GST)
-        self._add_cell(row, 'M', row_num, gval, 'n', 
+        self._add_cell(row, 'M', row_num, tax_amount, 'n', 
                       formula=f'K{row_num}*L{row_num}')
         
         # N column: G.Amt = K+M (Amount + G.Val)
-        self._add_cell(row, 'N', row_num, gamt, 'n', 
+        self._add_cell(row, 'N', row_num, grand_total, 'n', 
                       formula=f'K{row_num}+M{row_num}')
         
         return row

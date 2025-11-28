@@ -123,7 +123,23 @@ async def generate_quote_for_products(
         except Exception as upload_error:
             upload_info = f"\n\n❌ UPLOAD FAILED:\n{str(upload_error)}"
         
-        total_amt = sum(float(p.get('price', 0)) * (1 - float(p.get('tax', 0)) / 100) * 1 * (1 + 0.18) for p in products)
+        def _to_float(val, default=0.0):
+            try:
+                return float(val)
+            except (TypeError, ValueError):
+                return default
+
+        total_amt = 0.0
+        for product in products:
+            price = _to_float(product.get('price'))
+            quantity = _to_float(product.get('quantity', 1), 1.0)
+            discount_pct = _to_float(product.get('discount', 0.0))
+            tax_pct = _to_float(product.get('tax', 0.0))
+
+            discounted_rate = price * (1 - discount_pct / 100)
+            amount = discounted_rate * quantity
+            tax_amount = amount * (tax_pct / 100)
+            total_amt += amount + tax_amount
         return (
             f"Quote generated successfully!\n"
             f"File saved to: {output_path}\n"
@@ -173,6 +189,7 @@ async def file_search(
             "llm_format": False,
             "llm_provider": "openai"
         }
+        print(query)
         print(params)
         # Make the request to RAG service
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -289,4 +306,4 @@ app.mount("/messages/", sse_app)
 # Main entry point
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8005)

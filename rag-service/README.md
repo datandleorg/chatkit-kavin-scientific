@@ -4,11 +4,14 @@ A FastAPI-based service for document ingestion and hybrid search using Docling f
 
 ## Features
 
-- **Document Processing**: Extract text from PDF, DOCX, TXT, Excel, and CSV files using Docling, openpyxl, and pandas
+- **Document Processing**: Extract text from PDF, DOCX, TXT, Markdown (MD), HTML, Excel, and CSV files using Docling, openpyxl, and pandas
+- **Multimodal RAG**: Process markdown files with embedded images (base64 data URIs) using vision-language models (CLIP)
 - **Vector Search**: Semantic similarity search using sentence transformers
 - **Text Search**: Full-text search using MongoDB's text search capabilities
 - **Hybrid Search**: Combines vector and text search with configurable weights
+- **Multimodal Fusion**: Fuses text and image embeddings for comprehensive document understanding
 - **RESTful API**: Clean FastAPI endpoints for all operations
+- **Admin Endpoints:** Reset database and manage collections
 - **Docker Support**: Complete containerization with Docker Compose
 - **Scalable**: Built with async/await for high performance
 
@@ -65,216 +68,219 @@ A FastAPI-based service for document ingestion and hybrid search using Docling f
 
 ## API Endpoints
 
+### Health and Status
+
+- **GET** `/`  – Simple root health check
+- **GET** `/health` – Detailed health check (Mongo, service status)
+
 ### Document Ingestion
 
-**POST** `/ingest`
-- Upload and process documents (PDF, DOCX, TXT, XLSX, XLS, CSV)
-- Parameters:
-  - `file`: Document file
-  - `collection_name`: MongoDB collection name (default: "documents")
-  - `chunk_size`: Text chunk size (default: 1000)
-  - `chunk_overlap`: Overlap between chunks (default: 200)
+- **POST** `/ingest`
+  - Upload and process documents (PDF, DOCX, TXT, MD, XLSX, XLS, CSV, HTML). Markdown files with embedded base64 images are supported.
+  - Parameters:
+    - `file` (required): Document file (multipart/form-data)
+    - `collection_name`: MongoDB collection name (default: "documents")
+    - `chunk_size`: Text chunk size (default: 1000)
+    - `chunk_overlap`: Overlap between chunks (default: 200)
 
-**Example:**
+**Examples:**
+
+Ingest a markdown file (basic):
 ```bash
 curl -X POST "http://localhost:8000/ingest" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
-  -F "file=@document.pdf" \
+  -F "file=@document.md" \
   -F "collection_name=my_docs"
 ```
 
+**Response:**
+```json
+{
+  "document_id": "abc123-def456-ghi789",
+  "filename": "docs_with_images.md",
+  "chunks_count": 12,
+  "collection_name": "my_docs",
+  "status": "success",
+  "metadata": { /* ... */ }
+}
+```
+
+**Metadata Information:**
+- **PDF:** `pages_count`, `total_elements`, `document_info`, `extraction_method`
+- **Markdown:** `image_count`, `has_images`, `images[]`, `char_count`, `line_count`, `extraction_method`
+- **Excel:** `total_sheets`, `sheet_names`, `total_rows`, `total_cells`, `sheets_data`
+- **CSV:** `total_rows`, `total_columns`, `column_names`, `non_empty_cells`
+- **DOCX:** `paragraphs_count`, `tables_count`, `extraction_method`
+- **TXT/HTML/Other:** `char_count`, `line_count`, `extraction_method`
+
 ### Search Operations
 
-**POST** `/search` - Hybrid Search
+#### **POST** `/search` – Hybrid Search
 - Combines vector similarity and keyword matching
+- **Multimodal support**: Uses text and image (vision) embeddings for markdown with embedded images (if CLIP is available)
 - Parameters:
-  - `query`: Search query
-  - `collection_name`: Collection to search
-  - `limit`: Maximum results (default: 10)
-  - `hybrid_weight`: Vector search weight (0.0-1.0, default: 0.7)
+  - JSON body (`SearchRequest`): `{ "query": string, "filters": {...} }`
+  - `collection_name`: Query param
+  - `limit`: Query param (default: 10)
+  - `score_threshold`: Query param (float: 0.0–1.0)
+  - `document_id`: Query param (optional, filter to a specific document)
+  - `result_type`: Query param (text, image, or omitted for both)
+  - `text_only`: Query param (if true, return concatenated results text)
+  - `llm_format`: Query param (if true, use LLM to summarize/format)
+  - `llm_provider`: Query param (default: "openai")
+- **Note**: "filters" in body allows advanced filtering on metadata, e.g. `{ "filename": "docs_with_images.md" }`
 
-**POST** `/search/vector` - Vector-Only Search
-- Semantic similarity search using embeddings
+#### **POST** `/search/vector` – Vector-Only Search
+- Semantic vector similarity (same params as above, but no keyword/LLM integration)
 
-**POST** `/search/keyword` - Keyword-Only Search
-- Full-text search using MongoDB text search
+#### **POST** `/search/keyword` – Keyword-Only Search
+- Full-text search using MongoDB's text indexes (same params, but ignores vector search)
 
-**Example:**
+#### **POST** `/documents/{document_id}/search`
+- Search within a specific document (same options as `/search` but requires the document ID in the route and in filters)
+
+#### **GET** `/documents/{document_id}`
+- Returns document metadata and all text chunks by document ID
+
+#### **Output Schema for Search Results**
+- Search results include `text`, `chunk_index`, `score`, `vision_score` (if multimodal), images metadata (base64, alt, etc.), and detailed chunk/file metadata for context/citation.
+- If `text_only` or `llm_format` is set, response will have a `text` field aggregating content or formatted output.
+
+#### Example Hybrid Search with Filters
 ```bash
-curl -X POST "http://localhost:8000/search" \
+curl -X POST "http://localhost:8000/search?collection_name=my_docs&limit=5" \
   -H "Content-Type: application/json" \
   -d '{
-    "query": "machine learning algorithms",
-    "filters": {"filename": "research_paper.pdf"}
+    "query": "system architecture diagram",
+    "filters": {"filename": "docs_with_images.md"}
   }'
 ```
 
 ### Collection Management
 
-**POST** `/collections` - Create a new collection
-- Parameters:
-  - `collection_name`: Name of the collection to create
+- **POST** `/collections` – Create collection
+- **GET** `/collections` – List collections
+- **GET** `/collections/{name}/stats` – Stats for a collection
+- **DELETE** `/collections/{name}` – Delete collection
 
-**GET** `/collections` - List all collections
-**GET** `/collections/{name}/stats` - Get collection statistics
-**DELETE** `/collections/{name}` - Delete a collection
-
-**Example - Create Collection:**
+**Example:**
 ```bash
-curl -X POST "http://localhost:8001/collections?collection_name=my_new_collection"
+curl -X POST "http://localhost:8000/collections?collection_name=my_new_collection"
 ```
 
-### Document Management
+### Admin Operations
 
-**GET** `/documents/{document_id}` - Get document by ID
-**GET** `/health` - Service health check
+- **DELETE** `/admin/reset` – Clears all data (removes all collections)
+- **DELETE** `/admin/collections/{collection_name}` – Deletes a specific collection
+
+### Health Endpoints
+
+- **GET** `/`              – Root health check
+- **GET** `/health`        – Detailed database/service health
+
+---
 
 ## Configuration
 
 ### Environment Variables
 
-- `MONGODB_CONNECTION_STRING`: MongoDB connection string
-- `DATABASE_NAME`: MongoDB database name
+- `MONGODB_CONNECTION_STRING`: MongoDB connection string (required)
+- `DATABASE_NAME`: MongoDB database name (default: `rag_db`)
 - `VECTOR_SIZE`: Embedding vector size (default: 384)
 
-### MongoDB Connection
+Environment variables are loaded from `config.env`, environment, or Docker Compose. You can override these for dev or production deployments.
 
-The service connects to MongoDB using the following default configuration:
-- Host: localhost
+### MongoDB Connection
+- Host: localhost (or container name if using Docker Compose)
 - Port: 27017
-- Database: rag_db
-- Authentication: admin/password123 (Docker setup)
+- Database: rag_db (or as configured)
+- Authentication: admin/password123 (Docker setup example)
 
 ## Document Processing
 
 ### Supported Formats
 
-- **PDF**: Processed using Docling for high-quality text extraction with pypdf fallback for problematic PDFs
-- **DOCX**: Processed using python-docx
-- **TXT**: Direct text reading
-- **XLSX/XLS**: Processed using openpyxl with formula extraction and multi-sheet support
-- **CSV**: Processed using pandas with automatic encoding detection and proper delimiter handling
+- **PDF**: Docling with fallback to PyPDF
+- **DOCX**: python-docx
+- **TXT**: Direct text read
+- **HTML**: Basic text read
+- **Markdown (MD)**: markdown-it-py parsing, base64 image extraction + vision embeddings with CLIP if available
+- **XLSX/XLS**: openpyxl, multi-sheet, formulas
+- **CSV**: pandas, encoding auto-detect, delimiter handling
 
 ### Text Chunking
-
-Documents are automatically chunked into smaller pieces for better search performance:
-- Default chunk size: 1000 characters
-- Default overlap: 200 characters
-- Chunks are created at sentence boundaries when possible
+- Chunked by sentence/paragraph boundaries when possible, with overlap
+- Supports LangChain chunker if present, fallback to internal chunker
 
 ### Embeddings
+- **Text:** all-MiniLM-L6-v2 (384d)
+- **Vision:** clip-ViT-B-32 (512d). Used for markdown with base64 images when available.
 
-- Model: `all-MiniLM-L6-v2` (384 dimensions)
-- Generated for each text chunk
-- Stored in MongoDB for vector similarity search
+---
 
-## Search Types
+## Multimodal RAG (Text + Image)
 
-### 1. Vector Search
-- Uses semantic similarity
-- Good for conceptual queries
-- Handles synonyms and related concepts
+- Markdown with base64 images: Extracts both text and images, creates both text and vision embeddings.
+- Multimodal search: When enabled, queries match on both visual/semantic content.
+- Images metadata (alt text, format, position, base64) included in returned results.
 
-### 2. Text Search
-- Uses MongoDB's full-text search
-- Good for exact keyword matching
-- Fast and efficient for specific terms
+---
 
-### 3. Hybrid Search
-- Combines both approaches
-- Configurable weights for each method
-- Provides comprehensive results
-
-## Development
-
-### Project Structure
+## Development & Project Structure
 
 ```
 rag-service/
 ├── main.py                 # FastAPI application
 ├── requirements.txt        # Python dependencies
-├── Dockerfile             # Container configuration
-├── docker-compose.yml     # Multi-service setup
-├── mongo-init.js          # MongoDB initialization
+├── Dockerfile              # Container configuration
+├── docker-compose.yml      # Multi-service setup
+├── mongo-init.js           # MongoDB initialization
 ├── models/
-│   └── schemas.py         # Pydantic models
+│   └── schemas.py          # Pydantic models
 └── services/
-    ├── document_processor.py  # Docling integration
-    ├── vector_store.py        # MongoDB operations
-    └── hybrid_search.py       # Search logic
+    ├── document_processor.py   # Docling & file parsing
+    ├── vector_store.py         # MongoDB, embedding logic
+    └── hybrid_search.py        # Hybrid search algorithm
 ```
 
-### Running Tests
+---
+
+## Running Tests
 
 ```bash
 pytest tests/
 ```
 
-### Code Quality
+## Code Quality
 
 ```bash
 # Format code
 black .
-
 # Lint code
 flake8 .
-
 # Type checking
 mypy .
 ```
 
-## Performance Considerations
-
-### MongoDB Indexes
-
-The service creates several indexes for optimal performance:
-- Text index on `text` and `filename` fields
-- Compound index on `document_id` and `chunk_index`
-- Index on `filename` and `created_at` for filtering
-
-### Vector Search Optimization
-
-- Embeddings are pre-computed and stored
-- Cosine similarity calculation optimized for MongoDB
-- Configurable score thresholds
-
-### Scaling
-
-- Async/await throughout for high concurrency
-- MongoDB sharding support
-- Horizontal scaling with multiple service instances
-
 ## Troubleshooting
 
 ### Common Issues
-
-1. **MongoDB Connection Failed**
-   - Check if MongoDB is running
-   - Verify connection string
-   - Check network connectivity
-
-2. **Document Processing Errors**
-   - Ensure file format is supported
-   - Check file permissions
-   - Verify Docling installation
-
-3. **Search Returns No Results**
-   - Check if documents are ingested
-   - Verify collection name
-   - Check search query format
+- MongoDB Connection Failed: Check DB network/credentials, ensure DB is running
+- Document Processing Errors: Check dependencies, file type support, Docling install
+- Search Returns No Results: Check documents are ingested, verify collection name/query, ensure proper filters
 
 ### Logs
+- View service logs:
+  ```bash
+  docker-compose logs -f rag_service
+  ```
+- View MongoDB logs:
+  ```bash
+  docker-compose logs -f mongodb
+  ```
 
-View service logs:
-```bash
-docker-compose logs -f rag_service
-```
-
-View MongoDB logs:
-```bash
-docker-compose logs -f mongodb
-```
+---
 
 ## Contributing
 

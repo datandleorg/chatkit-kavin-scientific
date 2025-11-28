@@ -15,10 +15,16 @@ pymongo>=4.6.0
 motor>=3.3.2
 sentence-transformers>=2.2.2
 numpy>=1.24.3
+torch>=2.0.0
+transformers>=4.35.0
 
 # Text processing and search
 beautifulsoup4>=4.12.2
 lxml>=4.9.3
+
+# LangChain for advanced text chunking
+langchain>=0.1.0
+langchain-text-splitters>=0.0.1
 
 # LLM integration
 openai>=1.0.0
@@ -28,6 +34,9 @@ pydantic>=2.6.0
 python-dotenv>=1.0.0
 httpx>=0.25.2
 aiofiles>=23.2.1
+Pillow>=10.0.0
+requests>=2.31.0
+markdown-it-py>=3.0.0
 
 # Development and testing
 pytest>=7.4.3
