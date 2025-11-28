@@ -254,9 +254,13 @@ export function ChatKitPanel({
     [isWorkflowConfigured, setErrorState]
   );
 
+  
+  
   const chatkit = useChatKit({
     api: { getClientSecret },
-
+    widgets: {
+      onAction: handleWidgetAction
+    },
     theme: {
       colorScheme: theme,
       color: {
@@ -344,6 +348,20 @@ export function ChatKitPanel({
       console.error("ChatKit error", error);
     },
   });
+
+
+  async function handleWidgetAction(action: {type: string }) {
+    console.log("=== Widget Action Triggered ===");
+    console.log("Action type:", action?.type);
+    console.log("Full action object:", JSON.stringify(action, null, 2));
+    console.log("===============================");
+    if (action.type === "generate_quote_form_submit") {
+      await chatkit.sendCustomAction({
+        type: "generate_quote_for_products",
+      });
+    }
+  }
+
 
   const activeError = errors.session ?? errors.integration;
   const blockingError = errors.script ?? activeError;
