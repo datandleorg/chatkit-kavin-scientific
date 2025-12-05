@@ -350,7 +350,7 @@ export function ChatKitPanel({
   });
 
 
-  async function handleWidgetAction(action: {type: string }) {
+  async function handleWidgetAction(action: {type: string, payload?: Record<string, unknown> }) {
     console.log("=== Widget Action Triggered ===");
     console.log("Action type:", action?.type);
     console.log("Full action object:", JSON.stringify(action, null, 2));
@@ -358,6 +358,7 @@ export function ChatKitPanel({
     if (action.type === "generate_quote_form_submit") {
       await chatkit.sendCustomAction({
         type: "generate_quote_for_products",
+        payload: action?.payload,
       });
     }
   }

@@ -1,0 +1,4 @@
+.env.*
+multimodal_rag/
+chatkit/
+venv/

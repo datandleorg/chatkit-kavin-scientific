@@ -1,0 +1,389 @@
+Document: 7634b9df-0fb0-4c2e-8952-bb37bf9acf7c.md
+File Type: markdown
+Total Chunks: 16
+Images Found: 2
+================================================================================
+
+--- Chunk 0 ---
+Chunk Index: 0
+Start Char: 0
+End Char: 962
+Page: 1
+Text Length: 962
+
+Text Content:
+# 🤖 AI PRINT - Intelligent Engineering Document Analysis
+
+*This document combines the original engineering print content with AI-powered semantic analysis and insights.*
+
+---
+
+## 📑 Document Structure
+
+1. **AI Analysis & Insights** - Semantic understanding and business context
+2. **Original Engineering Print** - Complete original content (tables, text, all details)
+3. **Intelligent Figure Analysis** - AI-powered figure interpretation with embedded images
+
+---
+
+# SECTION 1: AI ANALYSIS & INSIGHTS 
+... (truncated, total 962 chars)
+
+--- Chunk 1 ---
+Chunk Index: 1
+Start Char: 1000
+End Char: 1402
+Page: 1
+Text Length: 402
+
+Text Content:
+## PART INFORMATION
+- **Part Number:** 07500150/5300 (series includes variants such as 0750015000, 0750015100, 0750015200, 0750015300)
+- **Part Name/Description:** Acrylic Screen
+- **Revision:** Formal Revision A
+- **Release State:** Formal Release (FORMAL A.)
+- **Sheet Info:** Sheet 1 of 1
+- **Document Type:** Detail Drawing (manufacturing/specification print for a single part)
+
+## FIGURES ANALYSIS
+
+--- Chunk 2 ---
+Chunk Index: 2
+Start Char: 2000
+End Char: 2979
+Page: 1
+Text Length: 979
+
+Text Content:
+## FIGURES ANALYSIS
+
+### Figure 1 (Page 1)
+- **Semantic Purpose:** Provides critical dimensional and feature details needed for fabrication and inspection of the acrylic screen. Displays mounting hole locations and key overall dimensions.
+- **Key Insights:** 
+   - The radius RI.63 and dimensions 42.62 and 22.57 define key contours.
+   - Six holes at 0.38" spacing and six holes Ø0.35" indicate mounting provisions.
+   - The thickness dimension B ±0.25" indicates critical material thickness toleran
+... (truncated, total 979 chars)
+
+--- Chunk 3 ---
+Chunk Index: 3
+Start Char: 3000
+End Char: 3925
+Page: 2
+Text Length: 925
+
+Text Content:
+### Figure 2 (Page 1)
+- **Semantic Purpose:** No explicit figure content extracted; likely a continuation or supplementary view not detailed in raw text.
+- **Key Insights:** Not available due to lack of data. Possibly shows assembly detail or alternate view.
+- **Components Shown:** Unknown.
+- **Critical Callouts:** None extracted.
+
+## ASSEMBLY CONTEXT
+- The acrylic screen is designed as a replaceable safety/privacy component within furniture systems.
+- Based on "Replaceable? Y=YES" notation, thi
+... (truncated, total 925 chars)
+
+--- Chunk 4 ---
+Chunk Index: 4
+Start Char: 4000
+End Char: 4743
+Page: 2
+Text Length: 743
+
+Text Content:
+## MATERIAL & SPECIFICATIONS
+- **Material:** 0.220" thick Acrylic sheet
+- **Finish:** Not explicitly detailed; assumed clear acrylic, standard surface finish for transparency and ease of cleaning.
+- **Tolerances:** 
+   - General dimensions: X.XX ±0.03 inches
+   - Critical dimensions: X.XXX ±0.015 inches
+   - Outside to outside dimensions: X.XXXX ±0.0050 inches
+   - Angle tolerances ±0.5° for critical angular features
+- **Projection:** Third angle projection used for drawing conventions.
+- **Manu
+... (truncated, total 743 chars)
+
+--- Chunk 5 ---
+Chunk Index: 5
+Start Char: 5000
+End Char: 5770
+Page: 3
+Text Length: 770
+
+Text Content:
+## BILL OF MATERIALS (BOM) SUMMARY
+- Four main part numbers representing size variants.
+- Of these, only part 0750015200 is active; others are inactive per recent revision notes (PR343933).
+- No sub-assemblies listed; component is a stand-alone part.
+- Hardware and fasteners are implied but not detailed.
+- Critical parts are the different acrylic sheets sized for installation.
+
+## SEMANTIC TAGS
+- Furniture type: Desk accessory/office partition
+- Assembly level: Component
+- Manufacturing complexi
+... (truncated, total 770 chars)
+
+--- Chunk 6 ---
+Chunk Index: 6
+Start Char: 6000
+End Char: 6887
+Page: 3
+Text Length: 887
+
+Text Content:
+## BUSINESS CONTEXT
+- This drawing supports both manufacturing and after-market service operations, providing details necessary for part fabrication and replacement.
+- It enables ordering, inventory control, and installation instructions for screens that serve as protective or privacy barriers.
+- The document enforces confidentiality and proprietary rights as noted, indicating its use is restricted to authorized personnel within HNI or operating companies.
+- Active/inactive status of part number
+... (truncated, total 887 chars)
+
+--- Chunk 7 ---
+Chunk Index: 7
+Start Char: 7000
+End Char: 7364
+Page: 4
+Text Length: 364
+
+Text Content:
+---
+
+This structured analysis distills the key engineering and business intelligence embedded in the original print, enabling downstream stakeholders to understand design intent, production requirements, and service implications.
+
+---
+
+# SECTION 2: ORIGINAL ENGINEERING PRINT 📄
+
+*Complete original content from engineering print - ALL details preserved AS IS*
+
+---
+
+--- Chunk 8 ---
+Chunk Index: 8
+Start Char: 8000
+End Char: 8951
+Page: 4
+Text Length: 951
+
+Text Content:
+<table>
+<tr>
+<th rowspan="2">HNI</th>
+<th>MATERIAL 0.220" ACRYLIC</th>
+<th>REPLACEABLE ? Y=YES N=NO N R=RESTRICTED</th>
+<th colspan="2">TITLE ACRYLIC SCREEN</th>
+<th colspan="3">NO 07500150/5300</th>
+</tr>
+<tr>
+<th>FINISH</th>
+<th>INITIAL REL.</th>
+<th>01 -22031- 17; 11 /2/2020 ; SCHONBERGER</th>
+<th>UNLESS NOTED X.XX ±0.03 DIMENSIONS ARE IN INCHES, X . XXX ±0.015</th>
+<th>DO NOT SCALE DRAWING</th>
+<th colspan="2">REV FORMAL A.</th>
+</tr>
+<tr>
+<td colspan="4">THIS DRAWING IS THE CONFIDENTIAL AND
+... (truncated, total 951 chars)
+
+--- Chunk 9 ---
+Chunk Index: 9
+Start Char: 9000
+End Char: 9200
+Page: 4
+Text Length: 200
+
+Text Content:
+<td>[X , XX] ARE METRIC, AND</td>
+<td colspan="2" rowspan="2">☒ ☒ THIRD ANGLE PROJECTION</td>
+<td rowspan="2">SHEET I OF I</td>
+</tr>
+<tr>
+<td>(X. XX) OR ST ARE CRITICAL ANGLE ±0.5</td>
+</tr>
+</table>
+
+--- Chunk 10 ---
+Chunk Index: 10
+Start Char: 10000
+End Char: 10979
+Page: 5
+Text Length: 979
+
+Text Content:
+<table>
+<tr>
+<th>PART NO.</th>
+<th>-A-</th>
+<th>-B-</th>
+<th>STATUS</th>
+</tr>
+<tr>
+<td>0750015000</td>
+<td>57.60</td>
+<td>36.00</td>
+<td>INACTIVE</td>
+</tr>
+<tr>
+<td>0750015100</td>
+<td>57.60</td>
+<td>48.00</td>
+<td>INACTIVE</td>
+</tr>
+<tr>
+<td>0750015200</td>
+<td>69.60</td>
+<td>36.00</td>
+<td>ACTIVE</td>
+</tr>
+<tr>
+<td>0750015300</td>
+<td>69.60</td>
+<td>48.00</td>
+<td>INACTIVE</td>
+</tr>
+</table>
+
+
+<figure>
+
+RI.63
+
+A
+
+42.62
+
+6X .38
+
+22.57
+
+Z
+
+6X Ø.35
+
+2.50
+
+B ±0.25"
+
+</figure>
+
+
+<figure>
+</fig
+... (truncated, total 979 chars)
+
+--- Chunk 11 ---
+Chunk Index: 11
+Start Char: 11000
+End Char: 11947
+Page: 5
+Text Length: 947
+
+Text Content:
+---
+
+# SECTION 3: INTELLIGENT FIGURE ANALYSIS 🎨
+
+*2 figure(s) with AI-powered semantic interpretation*
+
+### Figure 1 - AI Analysis
+
+**Metadata:**
+- Page: 1
+
+**🧠 AI Insights:**
+
+1. **Semantic Purpose**: This figure defines the precise geometric layout and hole pattern for a rectangular plate or panel, focusing on hole locations and part dimensions to guide manufacturing.
+
+2. **Key Insights**: (1) The part includes six equally spaced holes with a diameter of 0.35"; (2) The holes have a positional 
+... (truncated, total 947 chars)
+
+--- Chunk 12 ---
+Chunk Index: 12
+Start Char: 12000
+End Char: 12853
+Page: 5
+Text Length: 853
+
+Text Content:
+4. **Critical Details**: The hole diameter (Ø0.35"), hole spacing (6 × 0.38"), and corner radius (R1.63") are essential for ensuring fit and avoiding interference. The tolerance on dimension B (±0.25") is a key control for part interchangeability.
+
+5. **Manufacturing Implications**: Precision drilling or punching is required for the six holes with strict positional dimensional control and careful corner machining; the large radius corners may need specialized tooling or CNC profiling.
+
+6. **Serv
+... (truncated, total 853 chars)
+
+--- Chunk 13 ---
+Chunk Index: 13
+Start Char: 13000
+End Char: 13761
+Page: 5
+Text Length: 761
+
+Text Content:
+**Visual:**
+
+[Image: Figure 1]
+
+---
+
+### Figure 2 - AI Analysis
+
+**Metadata:**
+- Page: 1
+
+**🧠 AI Insights:**
+
+1. **Semantic Purpose**: This figure appears to show a basic outline or profile view of a single sheet metal or panel component, likely communicating its shape and hole locations for manufacturing or assembly purposes.
+
+2. **Key Insights**:  
+   - The component is generally rectangular with one rounded corner, indicating design intent to avoid sharp edges or fit into a specific enclosure
+... (truncated, total 761 chars)
+
+--- Chunk 14 ---
+Chunk Index: 14
+Start Char: 14000
+End Char: 14795
+Page: 5
+Text Length: 795
+
+Text Content:
+3. **Component Relationships**: The holes likely correspond to mating fasteners or alignment pins with another part; the even spacing hints at standard fastening patterns critical for assembly integrity. The rounded corner indicates fitting requirements where clearance or ergonomics are factors.
+
+4. **Critical Details**: The hole placement and rounded corner radius are crucial for correct fit; even a small deviation could affect assembly or function, though precise dimensions are missing here an
+... (truncated, total 795 chars)
+
+--- Chunk 15 ---
+Chunk Index: 15
+Start Char: 15000
+End Char: 15243
+Page: 5
+Text Length: 243
+
+Text Content:
+6. **Service Relevance**: For service, technicians must recognize the hole pattern for correct panel mounting or removal; the rounded corner could serve as an orientation feature to avoid incorrect installation.
+
+**Visual:**
+
+[Image: Figure 2]
+
+
+================================================================================
+EXTRACTED IMAGES:
+================================================================================
+
+Image 1:
+  Alt Text: Figure 1
+  Format: png
+  Dimensions: 802x765
+  Size: 27,601 bytes
+  Position in text: 9699
+
+Image 2:
+  Alt Text: Figure 2
+  Format: png
+  Dimensions: 329x700
+  Size: 15,966 bytes
+  Position in text: 48391
