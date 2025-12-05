@@ -350,7 +350,11 @@ export function ChatKitPanel({
   });
 
 
+<<<<<<< HEAD
   async function handleWidgetAction(action: {type: string, payload?: Record<string, unknown> }) {
+=======
+  async function handleWidgetAction(action: {type: string }) {
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
     console.log("=== Widget Action Triggered ===");
     console.log("Action type:", action?.type);
     console.log("Full action object:", JSON.stringify(action, null, 2));
@@ -358,7 +362,10 @@ export function ChatKitPanel({
     if (action.type === "generate_quote_form_submit") {
       await chatkit.sendCustomAction({
         type: "generate_quote_for_products",
+<<<<<<< HEAD
         payload: action?.payload,
+=======
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
       });
     }
   }

@@ -49,8 +49,11 @@ class DocumentProcessor:
                 content, metadata = await self._process_docx(file_path)
             elif file_extension == '.txt':
                 content, metadata = await self._process_txt(file_path)
+<<<<<<< HEAD
             elif file_extension == '.md':
                 content, metadata = await self._process_markdown(file_path)
+=======
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
             elif file_extension in ['.xlsx', '.xls']:
                 content, metadata = await self._process_excel(file_path)
             elif file_extension == '.csv':
@@ -62,9 +65,12 @@ class DocumentProcessor:
             # Create chunks with metadata
             chunks = self._create_chunks(content, chunk_size, chunk_overlap, metadata)
             
+<<<<<<< HEAD
             # Write chunks to file for verification (debug mode)
             self._write_chunks_to_file(file_path, chunks, metadata)
             
+=======
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
             processing_time = time.time() - start_time
             
             return {
@@ -429,6 +435,7 @@ class DocumentProcessor:
             logger.error(f"Error processing TXT {file_path.name}: {e}")
             raise Exception(f"Failed to process TXT: {str(e)}")
     
+<<<<<<< HEAD
     async def _process_markdown(self, file_path: Path) -> tuple[str, Dict[str, Any]]:
         """Process Markdown file with image extraction support"""
         try:
@@ -607,6 +614,8 @@ class DocumentProcessor:
                 logger.error(f"Fallback processing also failed: {fallback_error}")
                 raise Exception(f"Failed to process markdown: {str(e)}")
     
+=======
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
     async def _process_generic(self, file_path: Path) -> tuple[str, Dict[str, Any]]:
         """Process other file types with basic text extraction"""
         try:
@@ -627,6 +636,7 @@ class DocumentProcessor:
             raise Exception(f"Failed to process file: {str(e)}")
     
     def _create_chunks(self, text: str, chunk_size: int, chunk_overlap: int, metadata: Dict[str, Any] = None) -> List[Dict[str, Any]]:
+<<<<<<< HEAD
         """
         Split text into overlapping chunks using LangChain's RecursiveCharacterTextSplitter
         
@@ -706,6 +716,9 @@ class DocumentProcessor:
     
     def _create_chunks_basic(self, text: str, chunk_size: int, chunk_overlap: int, metadata: Dict[str, Any] = None) -> List[Dict[str, Any]]:
         """Fallback basic chunking method when LangChain is not available"""
+=======
+        """Split text into overlapping chunks with page information"""
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
         if not text.strip():
             return []
 
@@ -759,6 +772,7 @@ class DocumentProcessor:
             if start >= len(text):
                 break
         
+<<<<<<< HEAD
         logger.info(f"Created {len(chunks)} chunks using basic chunking")
         return chunks
     
@@ -813,3 +827,7 @@ class DocumentProcessor:
         except Exception as e:
             logger.warning(f"Failed to write chunks to file: {e}")
             # Don't fail the whole process if debug logging fails
+=======
+        logger.info(f"Created {len(chunks)} chunks from document")
+        return chunks
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d

@@ -25,7 +25,10 @@ class DocumentResponse(BaseModel):
     chunks_count: int
     collection_name: str
     status: str
+<<<<<<< HEAD
     metadata: Optional[Dict[str, Any]] = Field(default=None, description="Document metadata including file type, processing info, etc.")
+=======
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
     message: Optional[str] = None
 
 class SearchRequest(BaseModel):
@@ -37,6 +40,7 @@ class Citation(BaseModel):
     """Citation information for a search result"""
     document_id: str
     filename: str
+<<<<<<< HEAD
     chunk_index: Optional[int] = None
     image_index: Optional[int] = None
 
@@ -53,6 +57,22 @@ class SearchResult(BaseModel):
     keyword_score: Optional[float] = None
     vision_score: Optional[float] = None
     image_data: Optional[Dict[str, Any]] = None
+=======
+    page_number: Optional[int] = None
+    chunk_index: int
+    start_char: Optional[int] = None
+    end_char: Optional[int] = None
+    document_type: Optional[str] = None
+    ingestion_date: Optional[str] = None
+
+class SearchResult(BaseModel):
+    """Individual search result with citation"""
+    document_id: str
+    chunk_index: int
+    text: str
+    score: float
+    metadata: Dict[str, Any]
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
     citation: Citation
 
 class SearchResponse(BaseModel):

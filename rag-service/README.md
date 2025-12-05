@@ -4,6 +4,7 @@ A FastAPI-based service for document ingestion and hybrid search using Docling f
 
 ## Features
 
+<<<<<<< HEAD
 - **Document Processing**: Extract text from PDF, DOCX, TXT, Markdown (MD), HTML, Excel, and CSV files using Docling, openpyxl, and pandas
 - **Multimodal RAG**: Process markdown files with embedded images (base64 data URIs) using vision-language models (CLIP)
 - **Vector Search**: Semantic similarity search using sentence transformers
@@ -12,6 +13,13 @@ A FastAPI-based service for document ingestion and hybrid search using Docling f
 - **Multimodal Fusion**: Fuses text and image embeddings for comprehensive document understanding
 - **RESTful API**: Clean FastAPI endpoints for all operations
 - **Admin Endpoints:** Reset database and manage collections
+=======
+- **Document Processing**: Extract text from PDF, DOCX, TXT, Excel, and CSV files using Docling, openpyxl, and pandas
+- **Vector Search**: Semantic similarity search using sentence transformers
+- **Text Search**: Full-text search using MongoDB's text search capabilities
+- **Hybrid Search**: Combines vector and text search with configurable weights
+- **RESTful API**: Clean FastAPI endpoints for all operations
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
 - **Docker Support**: Complete containerization with Docker Compose
 - **Scalable**: Built with async/await for high performance
 
@@ -68,6 +76,7 @@ A FastAPI-based service for document ingestion and hybrid search using Docling f
 
 ## API Endpoints
 
+<<<<<<< HEAD
 ### Health and Status
 
 - **GET** `/`  – Simple root health check
@@ -86,10 +95,24 @@ A FastAPI-based service for document ingestion and hybrid search using Docling f
 **Examples:**
 
 Ingest a markdown file (basic):
+=======
+### Document Ingestion
+
+**POST** `/ingest`
+- Upload and process documents (PDF, DOCX, TXT, XLSX, XLS, CSV)
+- Parameters:
+  - `file`: Document file
+  - `collection_name`: MongoDB collection name (default: "documents")
+  - `chunk_size`: Text chunk size (default: 1000)
+  - `chunk_overlap`: Overlap between chunks (default: 200)
+
+**Example:**
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
 ```bash
 curl -X POST "http://localhost:8000/ingest" \
   -H "accept: application/json" \
   -H "Content-Type: multipart/form-data" \
+<<<<<<< HEAD
   -F "file=@document.md" \
   -F "collection_name=my_docs"
 ```
@@ -154,11 +177,41 @@ curl -X POST "http://localhost:8000/search?collection_name=my_docs&limit=5" \
   -d '{
     "query": "system architecture diagram",
     "filters": {"filename": "docs_with_images.md"}
+=======
+  -F "file=@document.pdf" \
+  -F "collection_name=my_docs"
+```
+
+### Search Operations
+
+**POST** `/search` - Hybrid Search
+- Combines vector similarity and keyword matching
+- Parameters:
+  - `query`: Search query
+  - `collection_name`: Collection to search
+  - `limit`: Maximum results (default: 10)
+  - `hybrid_weight`: Vector search weight (0.0-1.0, default: 0.7)
+
+**POST** `/search/vector` - Vector-Only Search
+- Semantic similarity search using embeddings
+
+**POST** `/search/keyword` - Keyword-Only Search
+- Full-text search using MongoDB text search
+
+**Example:**
+```bash
+curl -X POST "http://localhost:8000/search" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "machine learning algorithms",
+    "filters": {"filename": "research_paper.pdf"}
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
   }'
 ```
 
 ### Collection Management
 
+<<<<<<< HEAD
 - **POST** `/collections` – Create collection
 - **GET** `/collections` – List collections
 - **GET** `/collections/{name}/stats` – Stats for a collection
@@ -180,11 +233,31 @@ curl -X POST "http://localhost:8000/collections?collection_name=my_new_collectio
 - **GET** `/health`        – Detailed database/service health
 
 ---
+=======
+**POST** `/collections` - Create a new collection
+- Parameters:
+  - `collection_name`: Name of the collection to create
+
+**GET** `/collections` - List all collections
+**GET** `/collections/{name}/stats` - Get collection statistics
+**DELETE** `/collections/{name}` - Delete a collection
+
+**Example - Create Collection:**
+```bash
+curl -X POST "http://localhost:8001/collections?collection_name=my_new_collection"
+```
+
+### Document Management
+
+**GET** `/documents/{document_id}` - Get document by ID
+**GET** `/health` - Service health check
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
 
 ## Configuration
 
 ### Environment Variables
 
+<<<<<<< HEAD
 - `MONGODB_CONNECTION_STRING`: MongoDB connection string (required)
 - `DATABASE_NAME`: MongoDB database name (default: `rag_db`)
 - `VECTOR_SIZE`: Embedding vector size (default: 384)
@@ -196,11 +269,25 @@ Environment variables are loaded from `config.env`, environment, or Docker Compo
 - Port: 27017
 - Database: rag_db (or as configured)
 - Authentication: admin/password123 (Docker setup example)
+=======
+- `MONGODB_CONNECTION_STRING`: MongoDB connection string
+- `DATABASE_NAME`: MongoDB database name
+- `VECTOR_SIZE`: Embedding vector size (default: 384)
+
+### MongoDB Connection
+
+The service connects to MongoDB using the following default configuration:
+- Host: localhost
+- Port: 27017
+- Database: rag_db
+- Authentication: admin/password123 (Docker setup)
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
 
 ## Document Processing
 
 ### Supported Formats
 
+<<<<<<< HEAD
 - **PDF**: Docling with fallback to PyPDF
 - **DOCX**: python-docx
 - **TXT**: Direct text read
@@ -228,11 +315,53 @@ Environment variables are loaded from `config.env`, environment, or Docker Compo
 ---
 
 ## Development & Project Structure
+=======
+- **PDF**: Processed using Docling for high-quality text extraction with pypdf fallback for problematic PDFs
+- **DOCX**: Processed using python-docx
+- **TXT**: Direct text reading
+- **XLSX/XLS**: Processed using openpyxl with formula extraction and multi-sheet support
+- **CSV**: Processed using pandas with automatic encoding detection and proper delimiter handling
+
+### Text Chunking
+
+Documents are automatically chunked into smaller pieces for better search performance:
+- Default chunk size: 1000 characters
+- Default overlap: 200 characters
+- Chunks are created at sentence boundaries when possible
+
+### Embeddings
+
+- Model: `all-MiniLM-L6-v2` (384 dimensions)
+- Generated for each text chunk
+- Stored in MongoDB for vector similarity search
+
+## Search Types
+
+### 1. Vector Search
+- Uses semantic similarity
+- Good for conceptual queries
+- Handles synonyms and related concepts
+
+### 2. Text Search
+- Uses MongoDB's full-text search
+- Good for exact keyword matching
+- Fast and efficient for specific terms
+
+### 3. Hybrid Search
+- Combines both approaches
+- Configurable weights for each method
+- Provides comprehensive results
+
+## Development
+
+### Project Structure
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
 
 ```
 rag-service/
 ├── main.py                 # FastAPI application
 ├── requirements.txt        # Python dependencies
+<<<<<<< HEAD
 ├── Dockerfile              # Container configuration
 ├── docker-compose.yml      # Multi-service setup
 ├── mongo-init.js           # MongoDB initialization
@@ -247,22 +376,48 @@ rag-service/
 ---
 
 ## Running Tests
+=======
+├── Dockerfile             # Container configuration
+├── docker-compose.yml     # Multi-service setup
+├── mongo-init.js          # MongoDB initialization
+├── models/
+│   └── schemas.py         # Pydantic models
+└── services/
+    ├── document_processor.py  # Docling integration
+    ├── vector_store.py        # MongoDB operations
+    └── hybrid_search.py       # Search logic
+```
+
+### Running Tests
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
 
 ```bash
 pytest tests/
 ```
 
+<<<<<<< HEAD
 ## Code Quality
+=======
+### Code Quality
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
 
 ```bash
 # Format code
 black .
+<<<<<<< HEAD
 # Lint code
 flake8 .
+=======
+
+# Lint code
+flake8 .
+
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
 # Type checking
 mypy .
 ```
 
+<<<<<<< HEAD
 ## Troubleshooting
 
 ### Common Issues
@@ -281,6 +436,59 @@ mypy .
   ```
 
 ---
+=======
+## Performance Considerations
+
+### MongoDB Indexes
+
+The service creates several indexes for optimal performance:
+- Text index on `text` and `filename` fields
+- Compound index on `document_id` and `chunk_index`
+- Index on `filename` and `created_at` for filtering
+
+### Vector Search Optimization
+
+- Embeddings are pre-computed and stored
+- Cosine similarity calculation optimized for MongoDB
+- Configurable score thresholds
+
+### Scaling
+
+- Async/await throughout for high concurrency
+- MongoDB sharding support
+- Horizontal scaling with multiple service instances
+
+## Troubleshooting
+
+### Common Issues
+
+1. **MongoDB Connection Failed**
+   - Check if MongoDB is running
+   - Verify connection string
+   - Check network connectivity
+
+2. **Document Processing Errors**
+   - Ensure file format is supported
+   - Check file permissions
+   - Verify Docling installation
+
+3. **Search Returns No Results**
+   - Check if documents are ingested
+   - Verify collection name
+   - Check search query format
+
+### Logs
+
+View service logs:
+```bash
+docker-compose logs -f rag_service
+```
+
+View MongoDB logs:
+```bash
+docker-compose logs -f mongodb
+```
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
 
 ## Contributing
 

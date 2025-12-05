@@ -220,7 +220,11 @@ class XMLQuoteGenerator:
         self._add_cell(row, 'E', row_num, brand, 's')  # Brand (string)
         self._add_cell(row, 'F', row_num, unit, 's')  # Unit (string)
         self._add_cell(row, 'G', row_num, rate, 'n')  # Rate (number)
+<<<<<<< HEAD
         self._add_cell(row, 'H', row_num, discount_percent / 100, 'n')  # Discount (ratio)
+=======
+        self._add_cell(row, 'H', row_num, dis, 'n')  # Discount (number)
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
         
         # I column: Discounted Rate = G*(1-H)
         self._add_cell(row, 'I', row_num, discounted_rate, 'n', 
@@ -232,6 +236,7 @@ class XMLQuoteGenerator:
         self._add_cell(row, 'K', row_num, amount, 'n', 
                       formula=f'I{row_num}*J{row_num}')
         
+<<<<<<< HEAD
         self._add_cell(row, 'L', row_num, tax_percent / 100, 'n')  # Tax rate (ratio)
         
         # M column: G.Val = K*L (Amount * GST)
@@ -240,6 +245,16 @@ class XMLQuoteGenerator:
         
         # N column: G.Amt = K+M (Amount + G.Val)
         self._add_cell(row, 'N', row_num, grand_total, 'n', 
+=======
+        self._add_cell(row, 'L', row_num, gst, 'n')  # GST (number)
+        
+        # M column: G.Val = K*L (Amount * GST)
+        self._add_cell(row, 'M', row_num, gval, 'n', 
+                      formula=f'K{row_num}*L{row_num}')
+        
+        # N column: G.Amt = K+M (Amount + G.Val)
+        self._add_cell(row, 'N', row_num, gamt, 'n', 
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
                       formula=f'K{row_num}+M{row_num}')
         
         return row

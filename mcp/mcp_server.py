@@ -189,7 +189,10 @@ async def file_search(
             "llm_format": False,
             "llm_provider": "openai"
         }
+<<<<<<< HEAD
         print(query)
+=======
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
         print(params)
         # Make the request to RAG service
         async with httpx.AsyncClient(timeout=30.0) as client:

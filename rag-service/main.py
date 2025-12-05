@@ -103,12 +103,20 @@ async def ingest_document(
     chunk_overlap: int = Query(default=200, description="Overlap between chunks")
 ):
     """
+<<<<<<< HEAD
     Ingest a document (PDF, DOCX, TXT, MD, XLSX, XLS, CSV) and store it in the vector database
     Supports multimodal RAG for markdown files with embedded images
     """
     try:
         # Validate file type
         allowed_types = [".pdf", ".docx", ".txt", ".md", ".xlsx", ".xls", ".csv"]
+=======
+    Ingest a document (PDF, DOCX, TXT, XLSX, XLS, CSV) and store it in the vector database
+    """
+    try:
+        # Validate file type
+        allowed_types = [".pdf", ".docx", ".txt", ".xlsx", ".xls", ".csv"]
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
         file_extension = Path(file.filename).suffix.lower()
         
         if file_extension not in allowed_types:
@@ -155,8 +163,12 @@ async def ingest_document(
             filename=file.filename,
             chunks_count=len(document_data["chunks"]),
             collection_name=collection_name,
+<<<<<<< HEAD
             status="success",
             metadata=document_data.get("metadata", {})
+=======
+            status="success"
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
         )
         
     except Exception as e:
@@ -171,15 +183,20 @@ async def search_documents(
     request: SearchRequest,
     collection_name: str = Query(default="documents", description="Collection name to search in"),
     limit: int = Query(default=10, description="Maximum number of results"),
+<<<<<<< HEAD
     score_threshold: float = Query(default=0.0, description="Minimum score threshold (0.0-1.0)"),
     document_id: str = Query(default=None, description="Optional document ID to search within a specific document only"),
     result_type: str = Query(default=None, description="Filter results by type: 'text', 'image', or None for all"),
+=======
+    hybrid_weight: float = Query(default=0.7, description="Weight for hybrid search (0.0-1.0)"),
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
     text_only: bool = Query(default=False, description="Return only concatenated text content"),
     llm_format: bool = Query(default=False, description="Use LLM to format content based on query"),
     llm_provider: str = Query(default="openai", description="LLM provider (openai only)")
 ):
     """
     Perform hybrid search combining vector similarity and keyword matching
+<<<<<<< HEAD
     with optional LLM formatting and text-only output.
     Optionally search within a specific document by providing document_id.
     Can filter results to only return text or image results using result_type parameter.
@@ -207,12 +224,25 @@ async def search_documents(
             logger.info(f"Searching within document {document_id} for query: {request.query}")
         else:
             logger.info(f"Performing hybrid search for query: {request.query}")
+=======
+    with optional LLM formatting and text-only output
+    """
+    try:
+        if hybrid_weight < 0.0 or hybrid_weight > 1.0:
+            raise HTTPException(
+                status_code=400,
+                detail="hybrid_weight must be between 0.0 and 1.0"
+            )
+        
+        logger.info(f"Performing hybrid search for query: {request.query}")
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
         
         # Perform hybrid search
         search_results = await hybrid_search.search(
             query=request.query,
             collection_name=collection_name,
             limit=limit,
+<<<<<<< HEAD
             score_threshold=score_threshold,
             document_id=document_id,
             filters=request.filters
@@ -222,6 +252,13 @@ async def search_documents(
         if result_type:
             search_results = [r for r in search_results if r.get('type') == result_type]
         
+=======
+            vector_weight=hybrid_weight,
+            keyword_weight=1.0 - hybrid_weight,
+            filters=request.filters
+        )
+        
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
         # Apply LLM formatting and text-only options
         formatted_results = await llm_service.format_search_results(
             search_results=search_results,

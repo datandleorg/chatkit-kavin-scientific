@@ -9,9 +9,12 @@ from sentence_transformers import SentenceTransformer
 import numpy as np
 import json
 import os
+<<<<<<< HEAD
 import base64
 from io import BytesIO
 from PIL import Image
+=======
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
 
 logger = logging.getLogger(__name__)
 
@@ -31,9 +34,13 @@ class VectorStore:
         self.client = None
         self.db = None
         self.embedding_model = None
+<<<<<<< HEAD
         self.vision_model = None
         self.vector_size = 384  # Default for all-MiniLM-L6-v2
         self.vision_vector_size = 512  # For CLIP-ViT-B-32
+=======
+        self.vector_size = 384  # Default for all-MiniLM-L6-v2
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
     
     async def initialize(self):
         """Initialize MongoDB client and embedding model"""
@@ -44,6 +51,7 @@ class VectorStore:
             self.client = AsyncIOMotorClient(self.connection_string)
             self.db = self.client[self.database_name]
             
+<<<<<<< HEAD
             # Initialize embedding models
             self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
             self.vector_size = self.embedding_model.get_sentence_embedding_dimension()
@@ -66,6 +74,16 @@ class VectorStore:
             await self._create_indexes()
             
             logger.info(f"VectorStore initialized with MongoDB, text vector size: {self.vector_size}, vision vector size: {self.vision_vector_size}")
+=======
+            # Initialize embedding model
+            self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+            self.vector_size = self.embedding_model.get_sentence_embedding_dimension()
+            
+            # Create indexes for better performance
+            await self._create_indexes()
+            
+            logger.info(f"VectorStore initialized with MongoDB, vector size: {self.vector_size}")
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
             
         except Exception as e:
             logger.error(f"Failed to initialize VectorStore: {e}")
@@ -106,6 +124,7 @@ class VectorStore:
             logger.error(f"MongoDB health check failed: {e}")
             return "unhealthy"
     
+<<<<<<< HEAD
     def _generate_vision_embedding(self, base64_data: str) -> Optional[List[float]]:
         """
         Generate vision embedding for a base64 encoded image using CLIP.
@@ -136,22 +155,31 @@ class VectorStore:
             logger.warning(f"Failed to generate vision embedding: {e}")
             return None
     
+=======
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
     async def store_document(
         self, 
         document_data: Dict[str, Any], 
         collection_name: str = "documents",
         metadata: Dict[str, Any] = None
     ) -> str:
+<<<<<<< HEAD
         """Store document chunks in MongoDB with optional vision embeddings"""
+=======
+        """Store document chunks in MongoDB"""
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
         try:
             # Generate document ID
             document_id = str(uuid.uuid4())
             
+<<<<<<< HEAD
             # Check if document has images
             doc_metadata = document_data.get("metadata", {})
             has_images = doc_metadata.get("has_images", False)
             images_data = doc_metadata.get("images", [])
             
+=======
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
             # Prepare documents for insertion
             documents_to_insert = []
             
@@ -159,6 +187,7 @@ class VectorStore:
                 # Generate embedding for chunk text
                 embedding = self.embedding_model.encode(chunk["text"]).tolist()
                 
+<<<<<<< HEAD
                 # Check if this chunk should have vision embeddings
                 # For now, we'll store vision embeddings at document level and reference them
                 vision_embedding = None
@@ -169,6 +198,10 @@ class VectorStore:
                 
                 # Prepare document metadata with citation information
                 doc_metadata_entry = {
+=======
+                # Prepare document metadata with citation information
+                doc_metadata = {
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
                     "document_id": document_id,
                     "chunk_index": chunk["chunk_index"],
                     "text": chunk["text"],
@@ -180,17 +213,25 @@ class VectorStore:
                     "created_at": datetime.now(),
                     "ingestion_date": datetime.now().isoformat(),
                     "embedding": embedding,
+<<<<<<< HEAD
                     "has_images": has_images,
                     "image_count": doc_metadata.get("image_count", 0),
+=======
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
                     "metadata": metadata or {},
                     **chunk.get("metadata", {})
                 }
                 
+<<<<<<< HEAD
                 documents_to_insert.append(doc_metadata_entry)
+=======
+                documents_to_insert.append(doc_metadata)
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
             
             # Insert documents into MongoDB
             result = await self.db[collection_name].insert_many(documents_to_insert)
             
+<<<<<<< HEAD
             # If document has images, store image embeddings separately
             if has_images and self.vision_model and images_data:
                 await self._store_image_embeddings(document_id, images_data, collection_name)
@@ -198,12 +239,16 @@ class VectorStore:
             logger.info(f"Stored document {document_id} with {len(documents_to_insert)} chunks in MongoDB")
             if has_images:
                 logger.info(f"Document has {len(images_data)} images with vision embeddings")
+=======
+            logger.info(f"Stored document {document_id} with {len(documents_to_insert)} chunks in MongoDB")
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
             return document_id
             
         except Exception as e:
             logger.error(f"Failed to store document: {e}")
             raise
     
+<<<<<<< HEAD
     async def _store_image_embeddings(self, document_id: str, images_data: List[Dict[str, Any]], collection_name: str):
         """Store vision embeddings for images in a separate collection"""
         try:
@@ -243,6 +288,8 @@ class VectorStore:
         except Exception as e:
             logger.error(f"Failed to store image embeddings: {e}")
     
+=======
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
     async def search_similar(
         self,
         query: str,
@@ -370,6 +417,7 @@ class VectorStore:
             
             results = await cursor.to_list(length=limit)
             
+<<<<<<< HEAD
             # Extract scores for normalization
             if results:
                 scores = [r.get("score", 0.0) for r in results if "score" in r]
@@ -388,11 +436,20 @@ class VectorStore:
                 # Normalize score to 0-1 range
                 normalized_score = (raw_score - min_score) / score_range if score_range > 0 else 0.0
                 
+=======
+            # Format results
+            formatted_results = []
+            for result in results:
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
                 formatted_results.append({
                     "document_id": result["document_id"],
                     "chunk_index": result["chunk_index"],
                     "text": result["text"],
+<<<<<<< HEAD
                     "score": normalized_score,
+=======
+                    "score": result.get("score", 0.0),
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
                     "metadata": {k: v for k, v in result.items() 
                                if k not in ["document_id", "chunk_index", "text", "score", "embedding", "_id"]}
                 })
@@ -403,6 +460,7 @@ class VectorStore:
             logger.error(f"Text search failed: {e}")
             raise
     
+<<<<<<< HEAD
     async def search_images(
         self,
         query: str,
@@ -525,6 +583,8 @@ class VectorStore:
             logger.error(f"Image search failed: {e}")
             return []
     
+=======
+>>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
     async def create_collection(self, collection_name: str) -> bool:
         """Create a new collection with indexes"""
         try:
