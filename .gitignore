@@ -2,3 +2,4 @@
 multimodal_rag/
 chatkit/
 venv/
+config.env
