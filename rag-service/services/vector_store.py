@@ -9,12 +9,6 @@ from sentence_transformers import SentenceTransformer
 import numpy as np
 import json
 import os
-<<<<<<< HEAD
-import base64
-from io import BytesIO
-from PIL import Image
-=======
->>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
 
 logger = logging.getLogger(__name__)
 
@@ -34,13 +28,7 @@ class VectorStore:
         self.client = None
         self.db = None
         self.embedding_model = None
-<<<<<<< HEAD
-        self.vision_model = None
         self.vector_size = 384  # Default for all-MiniLM-L6-v2
-        self.vision_vector_size = 512  # For CLIP-ViT-B-32
-=======
-        self.vector_size = 384  # Default for all-MiniLM-L6-v2
->>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
     
     async def initialize(self):
         """Initialize MongoDB client and embedding model"""
@@ -51,30 +39,6 @@ class VectorStore:
             self.client = AsyncIOMotorClient(self.connection_string)
             self.db = self.client[self.database_name]
             
-<<<<<<< HEAD
-            # Initialize embedding models
-            self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
-            self.vector_size = self.embedding_model.get_sentence_embedding_dimension()
-            
-            # Initialize vision model (CLIP) for multimodal embeddings
-            try:
-                # Try to load CLIP model
-                # Note: This requires torch and transformers, sentence-transformers supports this
-                import torch
-                
-                self.vision_model = SentenceTransformer('clip-ViT-B-32')
-                self.vision_vector_size = 512
-                logger.info("CLIP vision model initialized for visual embeddings")
-            except Exception as e:
-                logger.warning(f"Failed to initialize CLIP vision model: {e}")
-                self.vision_model = None
-                self.vision_vector_size = 0
-            
-            # Create indexes for better performance
-            await self._create_indexes()
-            
-            logger.info(f"VectorStore initialized with MongoDB, text vector size: {self.vector_size}, vision vector size: {self.vision_vector_size}")
-=======
             # Initialize embedding model
             self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
             self.vector_size = self.embedding_model.get_sentence_embedding_dimension()
@@ -83,7 +47,6 @@ class VectorStore:
             await self._create_indexes()
             
             logger.info(f"VectorStore initialized with MongoDB, vector size: {self.vector_size}")
->>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
             
         except Exception as e:
             logger.error(f"Failed to initialize VectorStore: {e}")
@@ -124,62 +87,17 @@ class VectorStore:
             logger.error(f"MongoDB health check failed: {e}")
             return "unhealthy"
     
-<<<<<<< HEAD
-    def _generate_vision_embedding(self, base64_data: str) -> Optional[List[float]]:
-        """
-        Generate vision embedding for a base64 encoded image using CLIP.
-        
-        Note: Images are NOT chunked before embedding. CLIP generates a single embedding
-        for the entire image. This is different from text processing where we chunk text
-        into smaller pieces. CLIP's embeddings capture the full visual content of an image.
-        """
-        if not self.vision_model:
-            return None
-        
-        try:
-            # Decode base64 image
-            image_bytes = base64.b64decode(base64_data)
-            image = Image.open(BytesIO(image_bytes))
-            
-            # Convert to RGB if necessary
-            if image.mode != 'RGB':
-                image = image.convert('RGB')
-            
-            # Generate embedding using CLIP (single embedding for full image)
-            vision_embedding = self.vision_model.encode(image).tolist()
-            
-            logger.debug(f"Generated vision embedding of size {len(vision_embedding)}")
-            return vision_embedding
-            
-        except Exception as e:
-            logger.warning(f"Failed to generate vision embedding: {e}")
-            return None
-    
-=======
->>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
     async def store_document(
         self, 
         document_data: Dict[str, Any], 
         collection_name: str = "documents",
         metadata: Dict[str, Any] = None
     ) -> str:
-<<<<<<< HEAD
-        """Store document chunks in MongoDB with optional vision embeddings"""
-=======
         """Store document chunks in MongoDB"""
->>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
         try:
             # Generate document ID
             document_id = str(uuid.uuid4())
             
-<<<<<<< HEAD
-            # Check if document has images
-            doc_metadata = document_data.get("metadata", {})
-            has_images = doc_metadata.get("has_images", False)
-            images_data = doc_metadata.get("images", [])
-            
-=======
->>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
             # Prepare documents for insertion
             documents_to_insert = []
             
@@ -187,21 +105,8 @@ class VectorStore:
                 # Generate embedding for chunk text
                 embedding = self.embedding_model.encode(chunk["text"]).tolist()
                 
-<<<<<<< HEAD
-                # Check if this chunk should have vision embeddings
-                # For now, we'll store vision embeddings at document level and reference them
-                vision_embedding = None
-                if has_images and self.vision_model:
-                    # For markdown with images, we can generate vision embeddings
-                    # We'll store them separately for each chunk or at document level
-                    pass
-                
-                # Prepare document metadata with citation information
-                doc_metadata_entry = {
-=======
                 # Prepare document metadata with citation information
                 doc_metadata = {
->>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
                     "document_id": document_id,
                     "chunk_index": chunk["chunk_index"],
                     "text": chunk["text"],
@@ -213,83 +118,22 @@ class VectorStore:
                     "created_at": datetime.now(),
                     "ingestion_date": datetime.now().isoformat(),
                     "embedding": embedding,
-<<<<<<< HEAD
-                    "has_images": has_images,
-                    "image_count": doc_metadata.get("image_count", 0),
-=======
->>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
                     "metadata": metadata or {},
                     **chunk.get("metadata", {})
                 }
                 
-<<<<<<< HEAD
-                documents_to_insert.append(doc_metadata_entry)
-=======
                 documents_to_insert.append(doc_metadata)
->>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
             
             # Insert documents into MongoDB
             result = await self.db[collection_name].insert_many(documents_to_insert)
             
-<<<<<<< HEAD
-            # If document has images, store image embeddings separately
-            if has_images and self.vision_model and images_data:
-                await self._store_image_embeddings(document_id, images_data, collection_name)
-            
             logger.info(f"Stored document {document_id} with {len(documents_to_insert)} chunks in MongoDB")
-            if has_images:
-                logger.info(f"Document has {len(images_data)} images with vision embeddings")
-=======
-            logger.info(f"Stored document {document_id} with {len(documents_to_insert)} chunks in MongoDB")
->>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
             return document_id
             
         except Exception as e:
             logger.error(f"Failed to store document: {e}")
             raise
     
-<<<<<<< HEAD
-    async def _store_image_embeddings(self, document_id: str, images_data: List[Dict[str, Any]], collection_name: str):
-        """Store vision embeddings for images in a separate collection"""
-        try:
-            image_documents = []
-            
-            for img_idx, img_data in enumerate(images_data):
-                base64_data = img_data.get("base64_data")
-                if not base64_data:
-                    continue
-                
-                # Generate vision embedding
-                vision_embedding = self._generate_vision_embedding(base64_data)
-                if not vision_embedding:
-                    continue
-                
-                image_doc = {
-                    "document_id": document_id,
-                    "image_index": img_idx,
-                    "alt_text": img_data.get("alt_text", ""),
-                    "format": img_data.get("format", "unknown"),
-                    "width": img_data.get("width"),
-                    "height": img_data.get("height"),
-                    "size_bytes": img_data.get("size_bytes", 0),
-                    "vision_embedding": vision_embedding,
-                    "position_in_text": img_data.get("position_in_text"),
-                    "base64_data": base64_data,  # Store the actual image data
-                    "created_at": datetime.now()
-                }
-                
-                image_documents.append(image_doc)
-            
-            # Store in separate images collection
-            if image_documents:
-                result = await self.db[f"{collection_name}_images"].insert_many(image_documents)
-                logger.info(f"Stored {len(image_documents)} image embeddings for document {document_id}")
-            
-        except Exception as e:
-            logger.error(f"Failed to store image embeddings: {e}")
-    
-=======
->>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
     async def search_similar(
         self,
         query: str,
@@ -417,39 +261,14 @@ class VectorStore:
             
             results = await cursor.to_list(length=limit)
             
-<<<<<<< HEAD
-            # Extract scores for normalization
-            if results:
-                scores = [r.get("score", 0.0) for r in results if "score" in r]
-                max_score = max(scores) if scores else 1.0
-                min_score = min(scores) if scores else 0.0
-                score_range = max_score - min_score if max_score != min_score else 1.0
-            else:
-                max_score = 1.0
-                min_score = 0.0
-                score_range = 1.0
-            
-            # Format results with normalized scores (0-1 range)
-            formatted_results = []
-            for result in results:
-                raw_score = result.get("score", 0.0)
-                # Normalize score to 0-1 range
-                normalized_score = (raw_score - min_score) / score_range if score_range > 0 else 0.0
-                
-=======
             # Format results
             formatted_results = []
             for result in results:
->>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
                 formatted_results.append({
                     "document_id": result["document_id"],
                     "chunk_index": result["chunk_index"],
                     "text": result["text"],
-<<<<<<< HEAD
-                    "score": normalized_score,
-=======
                     "score": result.get("score", 0.0),
->>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
                     "metadata": {k: v for k, v in result.items() 
                                if k not in ["document_id", "chunk_index", "text", "score", "embedding", "_id"]}
                 })
@@ -460,131 +279,6 @@ class VectorStore:
             logger.error(f"Text search failed: {e}")
             raise
     
-<<<<<<< HEAD
-    async def search_images(
-        self,
-        query: str,
-        collection_name: str = "documents",
-        limit: int = 10,
-        filters: Optional[Dict[str, Any]] = None
-    ) -> List[Dict[str, Any]]:
-        """Search for images using CLIP vision embeddings"""
-        if not self.vision_model:
-            logger.warning("Vision model not available, skipping image search")
-            return []
-        
-        try:
-            # Generate query embedding using text encoder (CLIP supports text queries)
-            query_embedding = self.vision_model.encode(query).tolist()
-            
-            # Search in the images collection
-            images_collection = f"{collection_name}_images"
-            
-            # Check if images collection exists
-            collections = await self.db.list_collection_names()
-            if images_collection not in collections:
-                logger.info(f"Images collection {images_collection} does not exist")
-                return []
-            
-            # Prepare aggregation pipeline for image search
-            pipeline = []
-            
-            # Add match stage for filters
-            if filters and "document_id" in filters:
-                pipeline.append({"$match": {"document_id": filters["document_id"]}})
-            
-            # Add vector similarity calculation for images
-            pipeline.extend([
-                {
-                    "$addFields": {
-                        "similarity_score": {
-                            "$divide": [
-                                {
-                                    "$reduce": {
-                                        "input": {"$range": [0, {"$size": "$vision_embedding"}]},
-                                        "initialValue": 0,
-                                        "in": {
-                                            "$add": [
-                                                "$$value",
-                                                {
-                                                    "$multiply": [
-                                                        {"$arrayElemAt": ["$vision_embedding", "$$this"]},
-                                                        {"$arrayElemAt": [query_embedding, "$$this"]}
-                                                    ]
-                                                }
-                                            ]
-                                        }
-                                    }
-                                },
-                                {
-                                    "$multiply": [
-                                        {
-                                            "$sqrt": {
-                                                "$reduce": {
-                                                    "input": "$vision_embedding",
-                                                    "initialValue": 0,
-                                                    "in": {"$add": ["$$value", {"$multiply": ["$$this", "$$this"]}]}
-                                                }
-                                            }
-                                        },
-                                        {
-                                            "$sqrt": {
-                                                "$reduce": {
-                                                    "input": query_embedding,
-                                                    "initialValue": 0,
-                                                    "in": {"$add": ["$$value", {"$multiply": ["$$this", "$$this"]}]}
-                                                }
-                                            }
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
-                    }
-                },
-                {"$match": {"similarity_score": {"$gte": 0.0}}},
-                {"$sort": {"similarity_score": -1}},
-                {"$limit": limit}
-            ])
-            
-            # Execute aggregation
-            cursor = self.db[images_collection].aggregate(pipeline)
-            results = await cursor.to_list(length=limit)
-            
-            # Format results
-            formatted_results = []
-            for result in results:
-                formatted_results.append({
-                    "document_id": result["document_id"],
-                    "image_index": result.get("image_index", 0),
-                    "alt_text": result.get("alt_text", ""),
-                    "format": result.get("format", "unknown"),
-                    "width": result.get("width"),
-                    "height": result.get("height"),
-                    "size_bytes": result.get("size_bytes", 0),
-                    "score": result["similarity_score"],
-                    "base64_data": result.get("base64_data"),  # Include image data
-                    "search_type": "vision",
-                    "metadata": {k: v for k, v in result.items() 
-                               if k not in ["document_id", "image_index", "similarity_score", "vision_embedding", "_id"]}
-                })
-                print("*********************")
-                print(result["similarity_score"])
-                print(result["document_id"])
-                print(len(result.get("base64_data")))
-
-
-           
-            
-            logger.info(f"Image search found {len(formatted_results)} results")
-            return formatted_results
-            
-        except Exception as e:
-            logger.error(f"Image search failed: {e}")
-            return []
-    
-=======
->>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
     async def create_collection(self, collection_name: str) -> bool:
         """Create a new collection with indexes"""
         try:
