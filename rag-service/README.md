@@ -48,20 +48,140 @@ A FastAPI-based service for document ingestion and hybrid search using Docling f
 
 ### Manual Setup
 
-1. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+#### Step 1: Create Virtual Environment
 
-2. **Start MongoDB:**
-   ```bash
-   docker run -d -p 27017:27017 --name mongodb mongo:7.0
-   ```
+**Windows (PowerShell):**
+```powershell
+# Navigate to rag-service directory
+cd rag-service
 
-3. **Run the service:**
-   ```bash
-   uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-   ```
+# Create virtual environment
+python -m venv venv
+
+# Activate virtual environment
+.\venv\Scripts\Activate.ps1
+
+# If you get an execution policy error, run this first:
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+**Windows (Command Prompt):**
+```cmd
+# Navigate to rag-service directory
+cd rag-service
+
+# Create virtual environment
+python -m venv venv
+
+# Activate virtual environment
+venv\Scripts\activate.bat
+```
+
+**Mac/Linux:**
+```bash
+# Navigate to rag-service directory
+cd rag-service
+
+# Create virtual environment
+python3 -m venv venv
+
+# Activate virtual environment
+source venv/bin/activate
+```
+
+**Verify activation:**
+- You should see `(venv)` at the beginning of your command prompt
+- Windows: `(venv) C:\Users\...\rag-service>`
+- Mac/Linux: `(venv) user@host:~/rag-service$`
+
+#### Step 2: Install Dependencies
+
+**Windows:**
+```powershell
+# Make sure venv is activated (you should see (venv) in prompt)
+# Upgrade pip first
+python -m pip install --upgrade pip
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+**Mac/Linux:**
+```bash
+# Make sure venv is activated (you should see (venv) in prompt)
+# Upgrade pip first
+python3 -m pip install --upgrade pip
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+#### Step 3: Start MongoDB
+
+**Using Docker (Recommended):**
+```bash
+# Windows (PowerShell/CMD) or Mac/Linux
+docker run -d -p 27017:27017 --name mongodb mongo:7.0
+```
+
+**Or use the MongoDB Docker Compose file:**
+```bash
+# From the mcp directory
+cd ../mcp
+docker compose -f docker-compose.mongodb.yml up -d
+```
+
+#### Step 4: Configure Environment Variables (Optional)
+
+Create a `config.env` file in the `rag-service` directory:
+
+```env
+MONGODB_CONNECTION_STRING=mongodb://admin:password123@localhost:27017/rag_db?authSource=admin
+DATABASE_NAME=rag_db
+PORT=8001
+VECTOR_SIZE=384
+```
+
+#### Step 5: Run the Service
+
+**Windows:**
+```powershell
+# Make sure venv is activated
+# Run the service
+python main.py
+
+# Or using uvicorn directly
+uvicorn main:app --host 0.0.0.0 --port 8001 --reload
+```
+
+**Mac/Linux:**
+```bash
+# Make sure venv is activated
+# Run the service
+python3 main.py
+
+# Or using uvicorn directly
+uvicorn main:app --host 0.0.0.0 --port 8001 --reload
+```
+
+**Verify the service is running:**
+- Open http://localhost:8001/health in your browser
+- Or run: `curl http://localhost:8001/health`
+
+#### Deactivating Virtual Environment
+
+When you're done working, deactivate the virtual environment:
+
+**Windows:**
+```powershell
+# PowerShell or CMD
+deactivate
+```
+
+**Mac/Linux:**
+```bash
+deactivate
+```
 
 ## API Endpoints
 

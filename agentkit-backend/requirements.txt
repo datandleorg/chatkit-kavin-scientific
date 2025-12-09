@@ -1,0 +1,25 @@
+# OpenAI SDKs
+# Note: Latest available version of openai-agents is 0.6.2
+openai-agents>=0.6.0
+# Note: ChatKit SDK may not be available - using Agents SDK directly instead
+# openai-chatkit>=1.0.0
+
+# Web framework
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
+
+# HTTP client
+httpx>=0.25.2
+
+# Environment variables
+python-dotenv>=1.0.0
+
+# Cloud storage
+boto3>=1.26.0
+
+# Excel processing
+openpyxl>=3.1.0
+
+# Utilities
+pydantic>=2.6.0
+

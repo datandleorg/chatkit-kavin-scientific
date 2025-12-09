@@ -1,12 +1,18 @@
 import asyncio
 import os
+import logging
 from typing import Any, Dict, List, Optional
 
 import httpx
 import boto3
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from mcp.server.fastmcp import FastMCP
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # --- Quote Generator Server Setup ---
 
@@ -73,8 +79,8 @@ async def generate_quote_for_products(
         file_name: Desired filename for the generated Excel quote.
     """
 
-    print(products)
-    print(file_name)
+    logger.info("generate_quote_for_products called with %s products and file_name=%s", len(products or []), file_name)
+    logger.debug("Products payload: %s", products)
 
     # Validate inputs
     if not products:
@@ -95,6 +101,7 @@ async def generate_quote_for_products(
         from xml_quote_generator import XMLQuoteGenerator
         generator = XMLQuoteGenerator(TEMPLATE_PATH)
         output_path = generator.generate_quote(products, file_name)
+        logger.info("Quote generated at %s", output_path)
         # Check if template has images and confirm preservation
         image_info = ""
         try:
@@ -120,8 +127,10 @@ async def generate_quote_for_products(
                 file_name += '.xlsx'
             public_url = upload_to_do_spaces(output_path, file_name)
             upload_info = f"\n\n🌐 FILE UPLOADED TO CLOUD:\nPublic URL: {public_url}"
+            logger.info("Quote uploaded to Spaces: %s", public_url)
         except Exception as upload_error:
             upload_info = f"\n\n❌ UPLOAD FAILED:\n{str(upload_error)}"
+            logger.exception("Failed to upload quote to Spaces")
         
         def _to_float(val, default=0.0):
             try:
@@ -149,6 +158,7 @@ async def generate_quote_for_products(
             f"{upload_info}"
         )
     except Exception as e:
+        logger.exception("Error generating quote")
         return f"Error generating quote: {str(e)}"
 
 # Tool: Search files using RAG service
@@ -167,6 +177,7 @@ async def file_search(
         document_id: Optional specific document ID to search within
     """
     try:
+        logger.info("file_search called with query=%s", query)
         # Prepare the search request
         search_data = {
             "query": query,
@@ -189,7 +200,7 @@ async def file_search(
             "llm_format": False,
             "llm_provider": "openai"
         }
-        print(params)
+        logger.debug("RAG search params: %s", params)
         # Make the request to RAG service
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
@@ -197,7 +208,7 @@ async def file_search(
                 json=search_data,
                 params=params
             )
-
+            logger.info("RAG search response status: %s", response.status_code)
             
             if response.status_code == 200:
                 result = response.json()
@@ -289,18 +300,112 @@ async def list_collections() -> str:
 
 app = FastAPI()
 
-# Add CORS middleware
+# Add CORS middleware with explicit SSE headers support
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # In production, specify your frontend domain
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],  # SSE uses GET, but allow POST for other endpoints
+    allow_headers=[
+        "*",  # Allow all headers
+        "Accept",
+        "Accept-Encoding",
+        "Accept-Language",
+        "Cache-Control",
+        "Connection",
+        "Content-Type",
+        "Authorization",
+        "X-Requested-With",
+        "text/event-stream",  # SSE specific
+    ],
+    expose_headers=[
+        "Content-Type",
+        "Cache-Control",
+        "Connection",
+        "X-Accel-Buffering",  # For nginx compatibility
+    ],
 )
 
 # Mount the MCP SSE app
+# Note: SSE endpoint expects GET requests with Accept: text/event-stream header
+# Add explicit OPTIONS handler for CORS preflight
+@app.options("/messages/")
+async def options_messages():
+    """Handle CORS preflight for SSE endpoint"""
+    return Response(
+        status_code=200,
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "Accept, Accept-Encoding, Cache-Control, Connection, Content-Type, Authorization",
+            "Access-Control-Expose-Headers": "Content-Type, Cache-Control, Connection",
+            "Access-Control-Max-Age": "3600",
+        }
+    )
+
+# Add middleware to ensure SSE headers are properly set and log requests
+@app.middleware("http")
+async def add_sse_headers(request: Request, call_next):
+    """Add SSE-specific headers to responses and log SSE requests"""
+    # Log SSE endpoint requests for debugging
+    if "/messages/" in str(request.url.path):
+        logger.info(f"SSE Request: {request.method} {request.url.path}")
+        logger.info(f"Headers: {dict(request.headers)}")
+        logger.info(f"Accept header: {request.headers.get('accept', 'Not set')}")
+    
+    try:
+        response = await call_next(request)
+        
+        # If this is an SSE endpoint request, ensure proper headers
+        if "/messages/" in str(request.url.path):
+            # Ensure CORS headers are present
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+            response.headers["Access-Control-Allow-Headers"] = "Accept, Accept-Encoding, Cache-Control, Connection, Content-Type, Authorization"
+            
+            # SSE-specific headers
+            accept_header = request.headers.get("accept", "").lower()
+            if "text/event-stream" in accept_header or request.method == "GET":
+                response.headers["Content-Type"] = "text/event-stream"
+                response.headers["Cache-Control"] = "no-cache"
+                response.headers["Connection"] = "keep-alive"
+                response.headers["X-Accel-Buffering"] = "no"  # Disable buffering for nginx
+        
+        return response
+    except Exception as e:
+        logger.error(f"Error in SSE middleware: {e}", exc_info=True)
+        # Return a proper error response
+        return Response(
+            content=f'{{"error": "SSE request failed: {str(e)}"}}',
+            status_code=500,
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Content-Type": "application/json"
+            }
+        )
+
 sse_app = mcp.sse_app(mount_path="/messages/")
 app.mount("/messages/", sse_app)
+
+# Add a root endpoint for health checks
+@app.get("/")
+async def root():
+    """Root endpoint for health checks"""
+    return {
+        "status": "running",
+        "service": "MCP Quote Generator Server",
+        "endpoints": {
+            "sse": "/messages/",
+            "docs": "/docs"
+        }
+    }
+
+# Add health check endpoint
+@app.get("/health")
+async def health():
+    """Health check endpoint"""
+    return {"status": "healthy", "service": "MCP Server"}
 
 # Main entry point
 if __name__ == "__main__":

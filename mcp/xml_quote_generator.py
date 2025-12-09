@@ -10,6 +10,7 @@ import shutil
 import zipfile
 import tempfile
 import copy
+import logging
 from typing import List, Dict, Any
 import xml.etree.ElementTree as ET
 
@@ -22,8 +23,10 @@ class XMLQuoteGenerator:
         'r': 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
     }
     
-    def __init__(self, template_path: str):
+    def __init__(self, template_path: str, output_dir: str | None = None):
         self.template_path = template_path
+        self.output_dir = output_dir or os.getcwd()
+        self.logger = logging.getLogger(__name__)
         
     def generate_quote(self, products: List[Dict[str, Any]], file_name: str) -> str:
         """
@@ -34,13 +37,14 @@ class XMLQuoteGenerator:
             if not file_name.endswith('.xlsx'):
                 file_name += '.xlsx'
             
-            output_path = os.path.join("/Users/saravanan/kavin/chatkit-kavin-scientific/mcp", file_name)
+            os.makedirs(self.output_dir, exist_ok=True)
+            output_path = os.path.join(self.output_dir, file_name)
             
             # Create temporary directory
             temp_dir = tempfile.mkdtemp()
             extracted_dir = os.path.join(temp_dir, "extracted")
             
-            print(f"Extracting template to: {extracted_dir}")
+            self.logger.info("Extracting template to: %s", extracted_dir)
             
             # Step 1: Extract the entire Excel file as a ZIP
             with zipfile.ZipFile(self.template_path, 'r') as zip_ref:
@@ -50,7 +54,7 @@ class XMLQuoteGenerator:
             self._update_worksheet_xml(extracted_dir, products)
             
             # Step 3: Recreate the Excel file with ALL original content
-            print(f"Creating output file: {output_path}")
+            self.logger.info("Creating output file: %s", output_path)
             with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
                 for root, dirs, files in os.walk(extracted_dir):
                     for file in files:
@@ -61,13 +65,11 @@ class XMLQuoteGenerator:
             # Cleanup
             shutil.rmtree(temp_dir)
             
-            print(f"✅ Quote generated with FULL preservation: {output_path}")
+            self.logger.info("Quote generated with FULL preservation: %s", output_path)
             return output_path
             
         except Exception as e:
-            print(f"❌ Error: {e}")
-            import traceback
-            traceback.print_exc()
+            self.logger.exception("Error generating quote")
             raise
     
     def _update_worksheet_xml(self, extracted_dir: str, products: List[Dict[str, Any]]):
@@ -75,10 +77,10 @@ class XMLQuoteGenerator:
         worksheet_path = os.path.join(extracted_dir, "xl", "worksheets", "sheet1.xml")
         
         if not os.path.exists(worksheet_path):
-            print(f"Worksheet not found at: {worksheet_path}")
+            self.logger.error("Worksheet not found at: %s", worksheet_path)
             return
         
-        print(f"Updating worksheet: {worksheet_path}")
+        self.logger.info("Updating worksheet: %s", worksheet_path)
         
         # Register namespaces
         ET.register_namespace('', self.NS['main'])
@@ -92,7 +94,7 @@ class XMLQuoteGenerator:
         sheet_data = root.find(f'.//{{{self.NS["main"]}}}sheetData')
         
         if sheet_data is None:
-            print("SheetData not found")
+            self.logger.error("SheetData not found")
             return
         
         # Find and store ALL content after row 23 before clearing
@@ -114,11 +116,11 @@ class XMLQuoteGenerator:
         
         # Write back to file with proper formatting
         tree.write(worksheet_path, encoding='utf-8', xml_declaration=True)
-        print(f"Worksheet updated successfully")
+        self.logger.info("Worksheet updated successfully")
     
     def _clear_product_rows(self, sheet_data, start_row: int, end_row: int):
         """Clear existing product data rows."""
-        print(f"Clearing rows {start_row} to {end_row}")
+        self.logger.debug("Clearing rows %s to %s", start_row, end_row)
         
         rows_to_remove = []
         for row in sheet_data.findall(f'.//{{{self.NS["main"]}}}row'):
@@ -129,11 +131,11 @@ class XMLQuoteGenerator:
         for row in rows_to_remove:
             sheet_data.remove(row)
         
-        print(f"Removed {len(rows_to_remove)} rows")
+        self.logger.debug("Removed %s rows", len(rows_to_remove))
     
     def _insert_product_rows(self, sheet_data, products: List[Dict[str, Any]]) -> tuple:
         """Insert new product rows into the sheet. Returns (last_row_num, total_gamt)."""
-        print(f"Inserting {len(products)} products")
+        self.logger.info("Inserting %s products", len(products))
         
         current_row = 15
         total_gamt = 0
@@ -185,10 +187,10 @@ class XMLQuoteGenerator:
             # Find the correct position to insert (maintain row order)
             self._insert_row_in_order(sheet_data, row, current_row)
             
-            print(f"  Inserted product {i}: {product}")
+            self.logger.debug("Inserted product %s: %s", i, product)
             current_row += 1
         
-        print(f"Total G.Amt: ${total_gamt:.2f}")
+        self.logger.info("Total G.Amt: $%.2f", total_gamt)
         return current_row - 1, total_gamt  # Return last row number and total
     
     def _create_row_element(
@@ -220,11 +222,7 @@ class XMLQuoteGenerator:
         self._add_cell(row, 'E', row_num, brand, 's')  # Brand (string)
         self._add_cell(row, 'F', row_num, unit, 's')  # Unit (string)
         self._add_cell(row, 'G', row_num, rate, 'n')  # Rate (number)
-<<<<<<< HEAD
         self._add_cell(row, 'H', row_num, discount_percent / 100, 'n')  # Discount (ratio)
-=======
-        self._add_cell(row, 'H', row_num, dis, 'n')  # Discount (number)
->>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
         
         # I column: Discounted Rate = G*(1-H)
         self._add_cell(row, 'I', row_num, discounted_rate, 'n', 
@@ -236,7 +234,6 @@ class XMLQuoteGenerator:
         self._add_cell(row, 'K', row_num, amount, 'n', 
                       formula=f'I{row_num}*J{row_num}')
         
-<<<<<<< HEAD
         self._add_cell(row, 'L', row_num, tax_percent / 100, 'n')  # Tax rate (ratio)
         
         # M column: G.Val = K*L (Amount * GST)
@@ -245,16 +242,6 @@ class XMLQuoteGenerator:
         
         # N column: G.Amt = K+M (Amount + G.Val)
         self._add_cell(row, 'N', row_num, grand_total, 'n', 
-=======
-        self._add_cell(row, 'L', row_num, gst, 'n')  # GST (number)
-        
-        # M column: G.Val = K*L (Amount * GST)
-        self._add_cell(row, 'M', row_num, gval, 'n', 
-                      formula=f'K{row_num}*L{row_num}')
-        
-        # N column: G.Amt = K+M (Amount + G.Val)
-        self._add_cell(row, 'N', row_num, gamt, 'n', 
->>>>>>> 743801bcc0d94f9953f34961b803df0b4769c53d
                       formula=f'K{row_num}+M{row_num}')
         
         return row
@@ -276,7 +263,7 @@ class XMLQuoteGenerator:
     def _extract_all_rows_after(self, sheet_data, after_row: int) -> list:
         """Extract ALL rows after the specified row number."""
         rows_after = []
-        print(f"Extracting all rows after row {after_row}...")
+        self.logger.debug("Extracting all rows after row %s...", after_row)
         
         for row in sheet_data.findall(f'.//{{{self.NS["main"]}}}row'):
             row_num = int(row.get('r', '0'))
@@ -287,12 +274,12 @@ class XMLQuoteGenerator:
         
         # Sort by original row number
         rows_after.sort(key=lambda x: x[0])
-        print(f"Found {len(rows_after)} rows after row {after_row}")
+        self.logger.debug("Found %s rows after row %s", len(rows_after), after_row)
         return rows_after
     
     def _insert_total_row(self, sheet_data, row_num: int, total_amount: float):
         """Insert a total row with summary information."""
-        print(f"Inserting total row at row {row_num}")
+        self.logger.info("Inserting total row at row %s", row_num)
         
         total_row = ET.Element(f'{{{self.NS["main"]}}}row', r=str(row_num))
         
@@ -315,7 +302,7 @@ class XMLQuoteGenerator:
     
     def _insert_moved_content(self, sheet_data, start_row: int, rows_data: list):
         """Insert moved content rows starting at the given row."""
-        print(f"Inserting moved content starting at row {start_row}")
+        self.logger.debug("Inserting moved content starting at row %s", start_row)
         
         current_row = start_row
         for original_row_num, row_element in rows_data:
