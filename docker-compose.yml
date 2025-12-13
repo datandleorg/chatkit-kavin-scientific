@@ -32,6 +32,8 @@ services:
     restart: unless-stopped
     ports:
       - "8000:8000"
+    env_file:
+      - ./.env
     environment:
       - MONGODB_CONNECTION_STRING=mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-password123}@mongodb:27017/${MONGO_DATABASE:-rag_db}?authSource=admin
       - DATABASE_NAME=${MONGO_DATABASE:-rag_db}
@@ -60,7 +62,7 @@ services:
     ports:
       - "8002:8002"
     env_file:
-      - ./agentkit-backend/.env
+      - ./.env
     environment:
       - PORT=8002
       - RAG_SERVICE_URL=http://rag-service:8000
