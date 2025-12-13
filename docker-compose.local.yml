@@ -1,0 +1,8 @@
+# Local development override
+# Use: docker compose -f docker-compose.yml -f docker-compose.local.yml up
+
+services:
+  frontend:
+    ports:
+      - "5171:80"  # Local development port
+    # Keep all other settings from main docker-compose.yml

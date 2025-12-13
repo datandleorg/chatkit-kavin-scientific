@@ -338,7 +338,7 @@ class XMLQuoteGenerator:
             self._insert_row_in_order(sheet_data, new_row, current_row)
             current_row += 1
         
-        print(f"Moved content inserted ({len(rows_data)} rows)")
+        self.logger.info(f"Moved content inserted ({len(rows_data)} rows)")
     
     def _insert_row_in_order(self, sheet_data, new_row, row_num: int):
         """Insert row in the correct position to maintain order."""

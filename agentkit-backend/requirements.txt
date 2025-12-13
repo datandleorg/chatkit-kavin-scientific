@@ -1,8 +1,8 @@
 # OpenAI SDKs
 # Note: Latest available version of openai-agents is 0.6.2
 openai-agents>=0.6.0
-# Note: ChatKit SDK may not be available - using Agents SDK directly instead
-# openai-chatkit>=1.0.0
+# ChatKit SDK for ChatKit server implementation
+openai-chatkit>=1.0.0
 
 # Web framework
 fastapi>=0.104.1

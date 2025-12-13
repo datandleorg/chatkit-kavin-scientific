@@ -18,13 +18,14 @@ from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent
 
 # Configure logging
-# Use stderr for console logs and also write to a rotating file for debugging
+# IMPORTANT: stdout is reserved for MCP JSONRPC protocol, all output must go to stderr
+# The MCP stdio server uses stdout for JSONRPC messages, so any print() statements will break it
 LOG_DIR = Path(__file__).parent / "logs"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 LOG_FILE = LOG_DIR / "mcp_server.log"
 
 handlers = [
-    logging.StreamHandler(sys.stderr),
+    logging.StreamHandler(sys.stderr),  # All logs go to stderr, not stdout
     RotatingFileHandler(LOG_FILE, maxBytes=2 * 1024 * 1024, backupCount=5, encoding="utf-8"),
 ]
 
@@ -35,28 +36,53 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Monkey-patch print to use logger instead of stdout
+# This ensures any print() statements don't break MCP protocol
+_original_print = print
+def safe_print(*args, **kwargs):
+    """Redirect print() to logger to avoid breaking MCP stdio protocol"""
+    message = ' '.join(str(arg) for arg in args)
+    logger.info(message)
+    if kwargs.get('file') == sys.stderr:
+        _original_print(*args, **kwargs)
+# Replace built-in print
+import builtins
+builtins.print = safe_print
+
 # Configure paths - adjust these for your system
 BASE_DIR = Path(__file__).parent
-TEMPLATE_PATH = os.getenv("TEMPLATE_PATH", str(BASE_DIR / "quote.xlsx"))
-OUTPUT_DIR = os.getenv("OUTPUT_DIR", str(BASE_DIR))
+TEMPLATE_PATH = str(BASE_DIR / "quote.xlsx")
+OUTPUT_DIR = str(BASE_DIR)
 
 # DigitalOcean Spaces configuration
-DO_ACCESS_KEY = os.getenv("DO_ACCESS_KEY", "DO00DK7ZU22GLQVH767D")
-DO_SECRET_KEY = os.getenv("DO_SECRET_KEY", "SPO1OnYRpw5pvBwh9dwSfec6c5eP+LNY1qYkxEY8TPs")
-DO_SPACE_NAME = os.getenv("DO_SPACE_NAME", "optimus")
-DO_REGION = os.getenv("DO_REGION", "ams3")
-DO_ENDPOINT = os.getenv("DO_ENDPOINT", "ams3.digitaloceanspaces.com")
+DO_ACCESS_KEY = "DO00DK7ZU22GLQVH767D"
+DO_SECRET_KEY = "SPO1OnYRpw5pvBwh9dwSfec6c5eP+LNY1qYkxEY8TPs"
+DO_SPACE_NAME = "optimus"
+DO_REGION = "ams3"
+DO_ENDPOINT = "ams3.digitaloceanspaces.com"
 
 # RAG Service Configuration
-RAG_SERVICE_URL = os.getenv("RAG_SERVICE_URL", "http://localhost:8001")
+RAG_SERVICE_URL = os.getenv("RAG_SERVICE_URL", "http://localhost:8000")
 
 # Initialize MCP server
 logger.info("Initializing MCP Server 'quote-generator'...")
 server = Server("quote-generator")
 logger.info("MCP Server 'quote-generator' initialized successfully")
 
-def upload_to_do_spaces(file_path: str, file_name: str) -> str:
-    """Upload file to DigitalOcean Spaces and return public URL"""
+def upload_to_do_spaces(file_path: str, file_name: str, delete_after_upload: bool = True) -> str:
+    """Upload file to DigitalOcean Spaces and return public URL
+    
+    Args:
+        file_path: Local path to the file to upload
+        file_name: Name to use for the file in the cloud
+        delete_after_upload: If True, delete local file after successful upload
+    
+    Returns:
+        Public URL of the uploaded file
+    
+    Raises:
+        Exception: If upload fails
+    """
     try:
         logger.info(f"Uploading file to DigitalOcean Spaces: {file_name}")
         session = boto3.session.Session()
@@ -77,6 +103,16 @@ def upload_to_do_spaces(file_path: str, file_name: str) -> str:
         
         public_url = f"https://{DO_SPACE_NAME}.{DO_ENDPOINT}/{file_name}"
         logger.info(f"Successfully uploaded file. Public URL: {public_url}")
+        
+        # Delete local file after successful upload
+        if delete_after_upload and os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+                logger.info(f"Deleted local file after successful upload: {file_path}")
+            except Exception as delete_error:
+                logger.warning(f"Failed to delete local file {file_path}: {delete_error}")
+                # Don't raise - upload was successful, deletion failure is non-critical
+        
         return public_url
     except Exception as e:
         logger.error(f"Failed to upload to DigitalOcean Spaces: {str(e)}", exc_info=True)
@@ -217,11 +253,12 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
                     file_name += '.xlsx'
                 
                 try:
-                    public_url = upload_to_do_spaces(output_path, file_name)
-                    upload_info = f"\n\n🌐 FILE UPLOADED TO CLOUD:\nPublic URL: {public_url}"
+                    # Upload to cloud and delete local file after successful upload
+                    public_url = upload_to_do_spaces(output_path, file_name, delete_after_upload=True)
+                    upload_info = f"\n\n🌐 FILE UPLOADED TO CLOUD:\nPublic URL: {public_url}\n(Local file deleted after upload)"
                 except Exception as upload_error:
                     logger.error(f"Upload to DigitalOcean Spaces failed: {upload_error}", exc_info=True)
-                    upload_info = f"\n\n❌ UPLOAD FAILED:\n{str(upload_error)}"
+                    upload_info = f"\n\n❌ UPLOAD FAILED:\n{str(upload_error)}\n(Local file kept: {output_path})"
                 
                 def _to_float(val, default=0.0):
                     try:

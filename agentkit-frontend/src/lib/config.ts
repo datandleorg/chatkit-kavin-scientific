@@ -12,9 +12,9 @@ const SUPPORT_API_BASE =
  * and deploy the real key.
  */
 export const SUPPORT_CHATKIT_API_DOMAIN_KEY =
-  import.meta.env.VITE_SUPPORT_CHATKIT_API_DOMAIN_KEY ?? "domain_pk_693816277b0881958fdd07afc2089e6609e53a3e6ed4c451";
+  import.meta.env.VITE_SUPPORT_CHATKIT_API_DOMAIN_KEY ?? "domain_pk_693c238303948190bdc3822908786a3905e8f79a8bc4a973";
 
-export const SUPPORT_CHATKIT_API_URL =
+  export const SUPPORT_CHATKIT_API_URL =
   import.meta.env.VITE_SUPPORT_CHATKIT_API_URL ??
   `${SUPPORT_API_BASE}/chatkit`;
 

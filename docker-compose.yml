@@ -1,0 +1,129 @@
+services:
+  # MongoDB for RAG Service
+  mongodb:
+    image: mongo:7.0
+    container_name: rag_mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-password123}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-rag_db}
+    volumes:
+      # Use attached volume if MOUNTED_VOLUME_PATH is set (production), 
+      # otherwise use local directory (development)
+      - ${MOUNTED_VOLUME_PATH:-./data/mongodb}:/data/db
+      - ./rag-service/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # RAG Service
+  rag-service:
+    build:
+      context: ./rag-service
+      dockerfile: Dockerfile
+    container_name: rag_service
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGODB_CONNECTION_STRING=mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-password123}@mongodb:27017/${MONGO_DATABASE:-rag_db}?authSource=admin
+      - DATABASE_NAME=${MONGO_DATABASE:-rag_db}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    volumes:
+      - ./rag-service/uploads:/app/uploads:rw
+      - ./rag-service/config.env:/app/config.env:ro
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # AgentKit Backend
+  agentkit-backend:
+    build:
+      context: ./agentkit-backend
+      dockerfile: Dockerfile
+    container_name: agentkit_backend
+    restart: unless-stopped
+    ports:
+      - "8002:8002"
+    env_file:
+      - ./agentkit-backend/.env
+    environment:
+      - PORT=8002
+      - RAG_SERVICE_URL=http://rag-service:8000
+      # MCP Server path (mounted at /app/mcp in container)
+      - MCP_BASE_DIR=/app/mcp
+      # MCP Server environment variables
+      - TEMPLATE_PATH=/app/mcp/quote.xlsx
+      - OUTPUT_DIR=/app/mcp
+      # RAG Service URL for MCP server (must use Docker service name, not localhost)
+      - RAG_SERVICE_URL=http://rag-service:8000
+      - DO_ACCESS_KEY=${DO_ACCESS_KEY:-}
+      - DO_SECRET_KEY=${DO_SECRET_KEY:-}
+      - DO_SPACE_NAME=${DO_SPACE_NAME:-optimus}
+      - DO_REGION=${DO_REGION:-ams3}
+      - DO_ENDPOINT=${DO_ENDPOINT:-ams3.digitaloceanspaces.com}
+    depends_on:
+      rag-service:
+        condition: service_healthy
+    volumes:
+      # Mount MCP server directory at /app/mcp (agent.py expects BASE_DIR/mcp where BASE_DIR is /app)
+      # Since agent.py is at /app/app/agent.py, BASE_DIR (parent.parent.parent) = /app
+      # So MCP_SERVER_SCRIPT = /app/mcp/mcp_server_stdio.py
+      - ./mcp:/app/mcp:rw
+      # Environment file
+      - ./agentkit-backend/.env:/app/.env:ro
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8002/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend
+  frontend:
+    build:
+      context: ./agentkit-frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"    # Production: HTTP for domain (kavin.botnetworks.in)
+      # - "443:443"  # HTTPS - uncomment if needed (SSL already set up on host)
+    environment:
+      - BACKEND_URL=http://agentkit-backend:8002
+    depends_on:
+      - agentkit-backend
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+# Note: MongoDB data is stored on the attached volume (20GB) via bind mount
+# Set MOUNTED_VOLUME_PATH environment variable to the mounted volume path
+# Example: export MOUNTED_VOLUME_PATH=/mnt/mongodb
+# If not set, uses ./data/mongodb as fallback
+
+networks:
+  app_network:
+    driver: bridge
+

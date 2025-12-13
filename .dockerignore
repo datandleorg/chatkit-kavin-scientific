@@ -1,0 +1,88 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+README.md
+DEPLOYMENT_GUIDE.md
+START_SERVICES.md
+
+# Environment files (should be mounted as volumes)
+.env
+.env.*
+*.env
+config.env
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+.venv
+venv/
+env/
+ENV/
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+.pnpm-debug.log
+.next
+out
+dist
+build
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Test files
+test_*
+*_test.py
+*_test.ts
+*_test.tsx
+*.test.ts
+*.test.tsx
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Docker
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# Deployment scripts
+deploy-*.sh
+build-and-push.sh
+
+# Old directory
+old/
+
+# Uploads (should be mounted as volumes)
+uploads/
+mcp/*.xlsx
+mcp/logs/
+

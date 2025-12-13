@@ -10,8 +10,14 @@ import os
 import sys
 
 # Get the path to the MCP stdio server script
-BASE_DIR = Path(__file__).parent.parent.parent
-MCP_SERVER_SCRIPT = BASE_DIR / "mcp" / "mcp_server_stdio.py"
+# In Docker, MCP is mounted at /app/mcp, so we use environment variable or fallback to relative path
+MCP_BASE_DIR = os.getenv("MCP_BASE_DIR")
+if MCP_BASE_DIR:
+    MCP_SERVER_SCRIPT = Path(MCP_BASE_DIR) / "mcp_server_stdio.py"
+else:
+    # Fallback: assume mcp is at ../mcp relative to agentkit-backend
+    BASE_DIR = Path(__file__).parent.parent.parent
+    MCP_SERVER_SCRIPT = BASE_DIR / "mcp" / "mcp_server_stdio.py"
 
 # Python executable path
 PYTHON_EXECUTABLE = sys.executable if hasattr(sys, 'executable') else "python3"
@@ -20,11 +26,31 @@ PYTHON_EXECUTABLE = sys.executable if hasattr(sys, 'executable') else "python3"
 # This will be used as a context manager in the chatkit_server
 def create_mcp_server():
     """Create and return MCP stdio server instance"""
+    # Get environment variables to pass to MCP subprocess
+    mcp_env = os.environ.copy()
+    
+    # Ensure RAG_SERVICE_URL is set (use Docker service name in containers)
+    # This is critical - the MCP server subprocess needs this to connect to RAG service
+    rag_service_url = os.getenv("RAG_SERVICE_URL", "http://rag-service:8000")
+    mcp_env["RAG_SERVICE_URL"] = rag_service_url
+    
+    # Pass other MCP-related environment variables
+    for env_var in ["TEMPLATE_PATH", "OUTPUT_DIR", "DO_ACCESS_KEY", "DO_SECRET_KEY", 
+                    "DO_SPACE_NAME", "DO_REGION", "DO_ENDPOINT", "OPENAI_API_KEY"]:
+        if env_var in os.environ:
+            mcp_env[env_var] = os.environ[env_var]
+    
+    # Log the RAG service URL being used (for debugging)
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Creating MCP server with RAG_SERVICE_URL={rag_service_url}")
+    
     return MCPServerStdio(
         name="Kavin Scientific MCP Server",
         params={
             "command": PYTHON_EXECUTABLE,
             "args": [str(MCP_SERVER_SCRIPT)],
+            "env": mcp_env,  # Pass environment variables to subprocess
         },
         cache_tools_list=True,
     )
