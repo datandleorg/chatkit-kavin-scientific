@@ -89,6 +89,8 @@ SRL- PRICE LIST Excel_Version-2024-25.pdf | SRL
 Hyma Pricelist 2025-2026 incl bio (1) (1).pdf | HYMA
 SH - SEPT - 04-09-2025 (1).pdf | SH
 ISOCHEM%20PRICE%20LIST%2008-05-2025%20(2).pdf | ISOCHEM
+Phoenix Borosilicate and Consumables PL 25-26.pdf | Phoenix Science
+SCIENCE HOUSE PRICE LIST 13-11-2025 | Science House
 
 The brand represents where the product was fetched from.
 
