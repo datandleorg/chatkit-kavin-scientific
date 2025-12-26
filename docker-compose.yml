@@ -45,6 +45,14 @@ services:
       - ./rag-service/config.env:/app/config.env:ro
     networks:
       - app_network
+    # Memory limits to prevent OOM kills on 4GB Droplet
+    # Limit to 2GB to leave room for MongoDB and system
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
     healthcheck:
       test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health', timeout=5)"]
       interval: 30s

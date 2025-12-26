@@ -28,5 +28,7 @@ EXPOSE 8000
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
-# Run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the application with 1 worker to prevent OOM on 4GB machines
+# Each worker loads its own copy of SentenceTransformer (~500MB)
+# Using 1 worker ensures we don't exceed memory limits
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
