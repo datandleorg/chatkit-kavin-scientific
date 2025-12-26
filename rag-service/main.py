@@ -5,6 +5,7 @@ from typing import List, Optional, Dict, Any
 import os
 import uuid
 import asyncio
+import gc
 from pathlib import Path
 import logging
 from dotenv import load_dotenv
@@ -133,6 +134,15 @@ async def ingest_document(
             chunk_overlap=chunk_overlap
         )
         
+        # Store chunks count before clearing content to free memory
+        chunks_count = len(document_data["chunks"])
+        
+        # Clear full content string to free memory (we only need chunks now)
+        # The full content can be very large and is not needed after chunking
+        if "content" in document_data:
+            del document_data["content"]
+            gc.collect()
+        
         # Store in vector database
         document_id = await vector_store.store_document(
             document_data=document_data,
@@ -146,13 +156,15 @@ async def ingest_document(
             }
         )
         
-        # Clean up uploaded file
+        # Clean up uploaded file and document data
         file_path.unlink()
+        del document_data
+        gc.collect()
         
         return DocumentResponse(
             document_id=document_id,
             filename=file.filename,
-            chunks_count=len(document_data["chunks"]),
+            chunks_count=chunks_count,
             collection_name=collection_name,
             status="success"
         )

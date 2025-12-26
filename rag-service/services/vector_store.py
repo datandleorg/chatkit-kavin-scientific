@@ -1,6 +1,7 @@
 import asyncio
 import uuid
 import logging
+import gc
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -100,7 +101,8 @@ class VectorStore:
             
             chunks = document_data["chunks"]
             total_chunks = len(chunks)
-            batch_size = 50  # Process 50 chunks at a time to reduce memory usage
+            # Reduced batch size to 20 to minimize memory usage on 4GB machines
+            batch_size = 20
             
             # Process chunks in batches to avoid loading everything into memory
             for batch_start in range(0, total_chunks, batch_size):
@@ -143,7 +145,20 @@ class VectorStore:
                 # Insert batch into MongoDB (frees memory immediately)
                 await self.db[collection_name].insert_many(documents_to_insert)
                 
-                logger.debug(f"Inserted batch {batch_start//batch_size + 1} ({len(documents_to_insert)} chunks) for document {document_id}")
+                # Explicitly clear variables and force garbage collection after each batch
+                del batch_texts
+                del batch_embeddings
+                del documents_to_insert
+                del batch_chunks
+                
+                # Force garbage collection to free memory immediately
+                gc.collect()
+                
+                logger.debug(f"Inserted batch {batch_start//batch_size + 1} ({batch_end - batch_start} chunks) for document {document_id}")
+            
+            # Final cleanup
+            del chunks
+            gc.collect()
             
             logger.info(f"Stored document {document_id} with {total_chunks} chunks in MongoDB (processed in {(total_chunks + batch_size - 1) // batch_size} batches)")
             return document_id
