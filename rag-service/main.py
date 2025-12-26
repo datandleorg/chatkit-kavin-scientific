@@ -107,9 +107,10 @@ async def ingest_document(
     Ingest a document (PDF, DOCX, TXT, XLSX, XLS, CSV) and store it in the vector database
     """
     try:
-        # Validate file type
+        # Validate file type and save filename before streaming
         allowed_types = [".pdf", ".docx", ".txt", ".xlsx", ".xls", ".csv"]
-        file_extension = Path(file.filename).suffix.lower()
+        filename = file.filename
+        file_extension = Path(filename).suffix.lower()
         
         if file_extension not in allowed_types:
             raise HTTPException(
@@ -117,15 +118,23 @@ async def ingest_document(
                 detail=f"Unsupported file type. Allowed types: {allowed_types}"
             )
         
-        # Save uploaded file
+        # Save uploaded file - stream to disk to avoid loading entire file into memory
         file_id = str(uuid.uuid4())
         file_path = UPLOAD_DIR / f"{file_id}{file_extension}"
         
+        # Stream file directly to disk instead of loading into memory
         with open(file_path, "wb") as buffer:
-            content = await file.read()
-            buffer.write(content)
+            while True:
+                chunk = await file.read(8192)  # Read in 8KB chunks
+                if not chunk:
+                    break
+                buffer.write(chunk)
         
-        logger.info(f"Processing document: {file.filename}")
+        # Clear the file object reference to free memory
+        del file
+        gc.collect()
+        
+        logger.info(f"Processing document: {filename}")
         
         # Process document with Docling
         document_data = await document_processor.process_document(
@@ -148,7 +157,7 @@ async def ingest_document(
             document_data=document_data,
             collection_name=collection_name,
             metadata={
-                "filename": file.filename,
+                "filename": filename,
                 "file_type": file_extension,
                 "file_id": file_id,
                 "chunk_size": chunk_size,
@@ -163,7 +172,7 @@ async def ingest_document(
         
         return DocumentResponse(
             document_id=document_id,
-            filename=file.filename,
+            filename=filename,
             chunks_count=chunks_count,
             collection_name=collection_name,
             status="success"

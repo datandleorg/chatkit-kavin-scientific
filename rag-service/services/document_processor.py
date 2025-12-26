@@ -1,5 +1,6 @@
 import asyncio
 import time
+import gc
 from pathlib import Path
 from typing import List, Dict, Any
 import logging
@@ -62,94 +63,109 @@ class DocumentProcessor:
             
             processing_time = time.time() - start_time
             
-            return {
+            # Clear content immediately after chunking to free memory
+            # We only need chunks, not the full content string
+            result = {
                 "filename": file_path.name,
-                "content": content,
+                "content": content,  # Will be cleared in main.py after use
                 "chunks": chunks,
                 "metadata": metadata,
                 "processing_time": processing_time
             }
+            
+            # Force garbage collection after chunking
+            gc.collect()
+            
+            return result
             
         except Exception as e:
             logger.error(f"Error processing document {file_path.name}: {e}")
             raise Exception(f"Failed to process document: {str(e)}")
     
     async def _process_pdf(self, file_path: Path) -> tuple[str, Dict[str, Any]]:
-        """Process PDF using Docling-parse with pypdf fallback"""
+        """Process PDF using Docling-parse with pypdf fallback - optimized for memory"""
         # Try Docling first
         docling_success = False
+        parser = None
+        result = None
+        content = ""
+        metadata = {}
+        
         try:
             # Use the exact same approach as the working extractor
             parser = pdf_parser_v2(str(file_path))
             parser.load_document('doc1', str(file_path))
             result = parser.parse_pdf_from_key('doc1')
             
-            # Extract text from all pages
-            text_data = {
-                "total_pages": len(result['pages']),
-                "text_elements": [],
-                "full_text": "",
-                "pages": {}
-            }
+            # Only extract full_text - don't store intermediate data structures to save memory
+            # We don't need text_elements or pages dict for chunking
+            full_text_parts = []
+            total_pages = len(result['pages'])
+            total_elements = 0
             
-            pages_to_process = range(len(result['pages']))
-            
-            for page_idx in pages_to_process:
+            # Process pages one at a time and only keep the text
+            for page_idx in range(total_pages):
                 if 0 <= page_idx < len(result['pages']):
                     page = result['pages'][page_idx]
                     sanitized_page = page['sanitized']
                     
                     page_text = ""
-                    page_elements = []
                     
                     # Extract text from cells
                     if 'cells' in sanitized_page and 'data' in sanitized_page['cells']:
-                        for cell_idx, cell_data in enumerate(sanitized_page['cells']['data']):
+                        for cell_data in sanitized_page['cells']['data']:
                             # Cell data is a list where text is at index 12
                             if len(cell_data) > 12 and cell_data[12]:
                                 text_content = str(cell_data[12])
                                 if text_content.strip():
-                                    element = {
-                                        "element_index": cell_idx,
-                                        "text": text_content,
-                                        "char_count": len(text_content),
-                                        "word_count": len(text_content.split()),
-                                        "page": page_idx,
-                                        "element_type": "cell",
-                                        "bbox": [cell_data[0], cell_data[1], cell_data[2], cell_data[3]] if len(cell_data) > 3 else None
-                                    }
-                                    page_elements.append(element)
                                     page_text += f"\n{text_content}"
+                                    total_elements += 1
                     
-                    text_data["text_elements"].extend(page_elements)
-                    text_data["full_text"] += page_text
+                    if page_text.strip():
+                        full_text_parts.append(page_text)
                     
-                    text_data["pages"][str(page_idx)] = {
-                        "text": page_text,
-                        "char_count": len(page_text),
-                        "word_count": len(page_text.split()),
-                        "elements": page_elements
-                    }
+                    # Clear page reference to free memory
+                    del page
+                    del sanitized_page
             
-            content = text_data["full_text"]
+            # Join all page texts
+            content = "\n".join(full_text_parts)
+            
+            # Clear intermediate data
+            del full_text_parts
+            del result
             
             metadata = {
                 "file_type": "pdf",
-                "pages_count": text_data["total_pages"],
-                "total_elements": len(text_data["text_elements"]),
-                "document_info": result.get('info', {}),
+                "pages_count": total_pages,
+                "total_elements": total_elements,
+                "document_info": {},  # Skip document_info to save memory
                 "extraction_method": "docling-parse"
             }
             
             # Check if we actually got meaningful content
             if content.strip():
                 docling_success = True
-                logger.info(f"Extracted {len(text_data['text_elements'])} text elements from {text_data['total_pages']} pages using Docling")
+                logger.info(f"Extracted {total_elements} text elements from {total_pages} pages using Docling")
             else:
                 logger.warning(f"No text content extracted from PDF with Docling: {file_path.name}, falling back to pypdf")
             
         except Exception as docling_error:
             logger.warning(f"Docling processing failed for {file_path.name}: {docling_error}")
+        finally:
+            # Explicitly clean up parser and result objects to free memory
+            if parser is not None:
+                try:
+                    del parser
+                except:
+                    pass
+            if result is not None:
+                try:
+                    del result
+                except:
+                    pass
+            # Force garbage collection after PDF processing
+            gc.collect()
         
         # If Docling failed or extracted no content, try pypdf
         if not docling_success:
