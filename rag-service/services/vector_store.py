@@ -93,41 +93,59 @@ class VectorStore:
         collection_name: str = "documents",
         metadata: Dict[str, Any] = None
     ) -> str:
-        """Store document chunks in MongoDB"""
+        """Store document chunks in MongoDB with batch processing to reduce memory usage"""
         try:
             # Generate document ID
             document_id = str(uuid.uuid4())
             
-            # Prepare documents for insertion
-            documents_to_insert = []
+            chunks = document_data["chunks"]
+            total_chunks = len(chunks)
+            batch_size = 50  # Process 50 chunks at a time to reduce memory usage
             
-            for chunk in document_data["chunks"]:
-                # Generate embedding for chunk text
-                embedding = self.embedding_model.encode(chunk["text"]).tolist()
+            # Process chunks in batches to avoid loading everything into memory
+            for batch_start in range(0, total_chunks, batch_size):
+                batch_end = min(batch_start + batch_size, total_chunks)
+                batch_chunks = chunks[batch_start:batch_end]
                 
-                # Prepare document metadata with citation information
-                doc_metadata = {
-                    "document_id": document_id,
-                    "chunk_index": chunk["chunk_index"],
-                    "text": chunk["text"],
-                    "start_char": chunk["start_char"],
-                    "end_char": chunk["end_char"],
-                    "filename": document_data["filename"],
-                    "file_type": document_data.get("metadata", {}).get("file_type", "unknown"),
-                    "page_number": chunk.get("metadata", {}).get("page_number"),
-                    "created_at": datetime.now(),
-                    "ingestion_date": datetime.now().isoformat(),
-                    "embedding": embedding,
-                    "metadata": metadata or {},
-                    **chunk.get("metadata", {})
-                }
+                # Extract texts for batch encoding (more efficient than one-by-one)
+                batch_texts = [chunk["text"] for chunk in batch_chunks]
                 
-                documents_to_insert.append(doc_metadata)
+                # Generate embeddings in batch (much more memory efficient)
+                # Run in thread pool to avoid blocking the event loop
+                loop = asyncio.get_event_loop()
+                batch_embeddings = await loop.run_in_executor(
+                    None,
+                    lambda: self.embedding_model.encode(batch_texts, show_progress_bar=False)
+                )
+                
+                # Prepare documents for insertion
+                documents_to_insert = []
+                for i, chunk in enumerate(batch_chunks):
+                    # Prepare document metadata with citation information
+                    doc_metadata = {
+                        "document_id": document_id,
+                        "chunk_index": chunk["chunk_index"],
+                        "text": chunk["text"],
+                        "start_char": chunk["start_char"],
+                        "end_char": chunk["end_char"],
+                        "filename": document_data["filename"],
+                        "file_type": document_data.get("metadata", {}).get("file_type", "unknown"),
+                        "page_number": chunk.get("metadata", {}).get("page_number"),
+                        "created_at": datetime.now(),
+                        "ingestion_date": datetime.now().isoformat(),
+                        "embedding": batch_embeddings[i].tolist(),
+                        "metadata": metadata or {},
+                        **chunk.get("metadata", {})
+                    }
+                    
+                    documents_to_insert.append(doc_metadata)
+                
+                # Insert batch into MongoDB (frees memory immediately)
+                await self.db[collection_name].insert_many(documents_to_insert)
+                
+                logger.debug(f"Inserted batch {batch_start//batch_size + 1} ({len(documents_to_insert)} chunks) for document {document_id}")
             
-            # Insert documents into MongoDB
-            result = await self.db[collection_name].insert_many(documents_to_insert)
-            
-            logger.info(f"Stored document {document_id} with {len(documents_to_insert)} chunks in MongoDB")
+            logger.info(f"Stored document {document_id} with {total_chunks} chunks in MongoDB (processed in {(total_chunks + batch_size - 1) // batch_size} batches)")
             return document_id
             
         except Exception as e:
