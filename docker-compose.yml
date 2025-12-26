@@ -17,6 +17,14 @@ services:
       - ./rag-service/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
     networks:
       - app_network
+    # Memory allocation: 3GB for MongoDB (database operations, indexes, cache)
+    # Increased for 16GB droplet - more cache improves query performance
+    deploy:
+      resources:
+        limits:
+          memory: 3G
+        reservations:
+          memory: 1G
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 10s
@@ -45,6 +53,15 @@ services:
       - ./rag-service/config.env:/app/config.env:ro
     networks:
       - app_network
+    # Memory allocation: 10GB for RAG service (PDF processing, embeddings, SentenceTransformer model)
+    # Increased for 16GB droplet - allows processing larger PDFs without OOM
+    # This is the most memory-intensive service
+    deploy:
+      resources:
+        limits:
+          memory: 10G
+        reservations:
+          memory: 3G
     healthcheck:
       test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health', timeout=5)"]
       interval: 30s
@@ -90,6 +107,14 @@ services:
       - ./agentkit-backend/.env:/app/.env:ro
     networks:
       - app_network
+    # Memory allocation: 2GB for backend API service (Python FastAPI)
+    # Increased for 16GB droplet - allows handling more concurrent requests
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
     healthcheck:
       test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8002/health', timeout=5)"]
       interval: 30s
@@ -113,6 +138,13 @@ services:
       - agentkit-backend
     networks:
       - app_network
+    # Memory allocation: 512MB for frontend (nginx, very lightweight)
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
       interval: 30s
