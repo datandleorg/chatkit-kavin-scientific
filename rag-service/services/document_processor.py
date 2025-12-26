@@ -78,6 +78,11 @@ class DocumentProcessor:
         """Process PDF using Docling-parse with pypdf fallback"""
         # Try Docling first
         docling_success = False
+        parser = None
+        result = None
+        content = ""
+        metadata = {}
+        
         try:
             # Use the exact same approach as the working extractor
             parser = pdf_parser_v2(str(file_path))
@@ -137,7 +142,7 @@ class DocumentProcessor:
                 "file_type": "pdf",
                 "pages_count": text_data["total_pages"],
                 "total_elements": len(text_data["text_elements"]),
-                "document_info": result.get('info', {}),
+                "document_info": result.get('info', {}) if result else {},
                 "extraction_method": "docling-parse"
             }
             
@@ -150,6 +155,18 @@ class DocumentProcessor:
             
         except Exception as docling_error:
             logger.warning(f"Docling processing failed for {file_path.name}: {docling_error}")
+        finally:
+            # Clean up parser and result to free memory
+            if parser is not None:
+                try:
+                    del parser
+                except:
+                    pass
+            if result is not None:
+                try:
+                    del result
+                except:
+                    pass
         
         # If Docling failed or extracted no content, try pypdf
         if not docling_success:
