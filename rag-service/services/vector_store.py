@@ -2,6 +2,8 @@ import asyncio
 import uuid
 import logging
 import gc
+import os
+import resource
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -9,9 +11,36 @@ from pymongo import ASCENDING, DESCENDING
 from sentence_transformers import SentenceTransformer
 import numpy as np
 import json
-import os
 
 logger = logging.getLogger(__name__)
+
+# Try to import psutil for better memory monitoring
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
+
+def get_memory_usage_mb():
+    """Get current memory usage in MB"""
+    try:
+        if PSUTIL_AVAILABLE:
+            process = psutil.Process(os.getpid())
+            mem_info = process.memory_info()
+            return mem_info.rss / 1024 / 1024  # Convert to MB
+        else:
+            # Fallback to resource module
+            mem_info = resource.getrusage(resource.RUSAGE_SELF)
+            return mem_info.ru_maxrss / 1024  # Convert to MB (Linux) or KB (macOS)
+    except Exception as e:
+        logger.warning(f"Could not get memory usage: {e}")
+        return 0
+
+def log_memory(step_name: str):
+    """Log memory usage at a specific step"""
+    mem_mb = get_memory_usage_mb()
+    logger.info(f"[MEMORY] {step_name}: {mem_mb:.2f} MB")
+    return mem_mb
 
 class VectorStore:
     """Service for managing vector storage with MongoDB"""
@@ -95,22 +124,32 @@ class VectorStore:
         metadata: Dict[str, Any] = None
     ) -> str:
         """Store document chunks in MongoDB with batch processing to reduce memory usage"""
+        log_memory("VECTOR_STORE - Start store_document")
         try:
             # Generate document ID
             document_id = str(uuid.uuid4())
             
             chunks = document_data["chunks"]
             total_chunks = len(chunks)
+            logger.info(f"Processing {total_chunks} chunks in batches")
             # Reduced batch size to 20 to minimize memory usage on 4GB machines
             batch_size = 20
             
+            log_memory("VECTOR_STORE - Before batch processing")
+            
             # Process chunks in batches to avoid loading everything into memory
+            batch_num = 0
             for batch_start in range(0, total_chunks, batch_size):
+                batch_num += 1
                 batch_end = min(batch_start + batch_size, total_chunks)
                 batch_chunks = chunks[batch_start:batch_end]
                 
+                log_memory(f"VECTOR_STORE - Batch {batch_num}: Before extracting texts")
+                
                 # Extract texts for batch encoding (more efficient than one-by-one)
                 batch_texts = [chunk["text"] for chunk in batch_chunks]
+                
+                log_memory(f"VECTOR_STORE - Batch {batch_num}: Before embedding generation")
                 
                 # Generate embeddings in batch (much more memory efficient)
                 # Run in thread pool to avoid blocking the event loop
@@ -119,6 +158,8 @@ class VectorStore:
                     None,
                     lambda: self.embedding_model.encode(batch_texts, show_progress_bar=False)
                 )
+                
+                log_memory(f"VECTOR_STORE - Batch {batch_num}: After embedding generation")
                 
                 # Prepare documents for insertion
                 documents_to_insert = []
@@ -142,8 +183,12 @@ class VectorStore:
                     
                     documents_to_insert.append(doc_metadata)
                 
+                log_memory(f"VECTOR_STORE - Batch {batch_num}: Before MongoDB insert")
+                
                 # Insert batch into MongoDB (frees memory immediately)
                 await self.db[collection_name].insert_many(documents_to_insert)
+                
+                log_memory(f"VECTOR_STORE - Batch {batch_num}: After MongoDB insert")
                 
                 # Explicitly clear variables and force garbage collection after each batch
                 del batch_texts
@@ -154,13 +199,17 @@ class VectorStore:
                 # Force garbage collection to free memory immediately
                 gc.collect()
                 
-                logger.debug(f"Inserted batch {batch_start//batch_size + 1} ({batch_end - batch_start} chunks) for document {document_id}")
+                log_memory(f"VECTOR_STORE - Batch {batch_num}: After cleanup and GC")
+                
+                logger.info(f"Inserted batch {batch_num} ({batch_end - batch_start} chunks) for document {document_id}")
             
             # Final cleanup
             del chunks
             gc.collect()
             
-            logger.info(f"Stored document {document_id} with {total_chunks} chunks in MongoDB (processed in {(total_chunks + batch_size - 1) // batch_size} batches)")
+            log_memory("VECTOR_STORE - After final cleanup")
+            
+            logger.info(f"Stored document {document_id} with {total_chunks} chunks in MongoDB (processed in {batch_num} batches)")
             return document_id
             
         except Exception as e:

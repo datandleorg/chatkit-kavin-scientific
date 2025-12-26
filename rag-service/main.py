@@ -6,9 +6,17 @@ import os
 import uuid
 import asyncio
 import gc
+import resource
 from pathlib import Path
 import logging
 from dotenv import load_dotenv
+
+# Try to import psutil for better memory monitoring, fallback to resource
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
 
 # Load environment variables from config.env
 load_dotenv('config.env')
@@ -22,6 +30,27 @@ from models.schemas import DocumentResponse, SearchResponse, SearchRequest
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+def get_memory_usage_mb():
+    """Get current memory usage in MB"""
+    try:
+        if PSUTIL_AVAILABLE:
+            process = psutil.Process(os.getpid())
+            mem_info = process.memory_info()
+            return mem_info.rss / 1024 / 1024  # Convert to MB
+        else:
+            # Fallback to resource module
+            mem_info = resource.getrusage(resource.RUSAGE_SELF)
+            return mem_info.ru_maxrss / 1024  # Convert to MB (Linux) or KB (macOS)
+    except Exception as e:
+        logger.warning(f"Could not get memory usage: {e}")
+        return 0
+
+def log_memory(step_name: str):
+    """Log memory usage at a specific step"""
+    mem_mb = get_memory_usage_mb()
+    logger.info(f"[MEMORY] {step_name}: {mem_mb:.2f} MB")
+    return mem_mb
 
 app = FastAPI(
     title="RAG Service",
@@ -106,11 +135,15 @@ async def ingest_document(
     """
     Ingest a document (PDF, DOCX, TXT, XLSX, XLS, CSV) and store it in the vector database
     """
+    initial_memory = log_memory("START - Ingest endpoint called")
+    
     try:
         # Validate file type and save filename before streaming
         allowed_types = [".pdf", ".docx", ".txt", ".xlsx", ".xls", ".csv"]
         filename = file.filename
         file_extension = Path(filename).suffix.lower()
+        
+        log_memory("STEP 1 - After validation")
         
         if file_extension not in allowed_types:
             raise HTTPException(
@@ -122,37 +155,54 @@ async def ingest_document(
         file_id = str(uuid.uuid4())
         file_path = UPLOAD_DIR / f"{file_id}{file_extension}"
         
+        log_memory("STEP 2 - Before file streaming")
+        
         # Stream file directly to disk instead of loading into memory
+        bytes_written = 0
         with open(file_path, "wb") as buffer:
             while True:
                 chunk = await file.read(8192)  # Read in 8KB chunks
                 if not chunk:
                     break
                 buffer.write(chunk)
+                bytes_written += len(chunk)
+        
+        file_size_mb = bytes_written / 1024 / 1024
+        logger.info(f"File saved: {filename} ({file_size_mb:.2f} MB)")
+        log_memory("STEP 3 - After file streaming to disk")
         
         # Clear the file object reference to free memory
         del file
         gc.collect()
+        log_memory("STEP 4 - After deleting file object and GC")
         
         logger.info(f"Processing document: {filename}")
         
         # Process document with Docling
+        log_memory("STEP 5 - Before document processing")
         document_data = await document_processor.process_document(
             file_path=file_path,
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap
         )
+        log_memory("STEP 6 - After document processing")
         
         # Store chunks count before clearing content to free memory
         chunks_count = len(document_data["chunks"])
+        logger.info(f"Created {chunks_count} chunks from document")
+        log_memory("STEP 7 - After chunking")
         
         # Clear full content string to free memory (we only need chunks now)
         # The full content can be very large and is not needed after chunking
         if "content" in document_data:
+            content_size_mb = len(document_data["content"]) / 1024 / 1024
+            logger.info(f"Clearing content string ({content_size_mb:.2f} MB)")
             del document_data["content"]
             gc.collect()
+            log_memory("STEP 8 - After clearing content and GC")
         
         # Store in vector database
+        log_memory("STEP 9 - Before vector store (embedding generation)")
         document_id = await vector_store.store_document(
             document_data=document_data,
             collection_name=collection_name,
@@ -164,11 +214,17 @@ async def ingest_document(
                 "chunk_overlap": chunk_overlap
             }
         )
+        log_memory("STEP 10 - After vector store (embeddings stored)")
         
         # Clean up uploaded file and document data
         file_path.unlink()
         del document_data
         gc.collect()
+        log_memory("STEP 11 - After cleanup and final GC")
+        
+        final_memory = get_memory_usage_mb()
+        memory_increase = final_memory - initial_memory
+        logger.info(f"[MEMORY SUMMARY] Initial: {initial_memory:.2f} MB, Final: {final_memory:.2f} MB, Increase: {memory_increase:.2f} MB")
         
         return DocumentResponse(
             document_id=document_id,

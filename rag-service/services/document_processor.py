@@ -1,6 +1,8 @@
 import asyncio
 import time
 import gc
+import os
+import resource
 from pathlib import Path
 from typing import List, Dict, Any
 import logging
@@ -10,6 +12,34 @@ import json
 from models.schemas import DocumentData, DocumentChunk
 
 logger = logging.getLogger(__name__)
+
+# Try to import psutil for better memory monitoring
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
+
+def get_memory_usage_mb():
+    """Get current memory usage in MB"""
+    try:
+        if PSUTIL_AVAILABLE:
+            process = psutil.Process(os.getpid())
+            mem_info = process.memory_info()
+            return mem_info.rss / 1024 / 1024  # Convert to MB
+        else:
+            # Fallback to resource module
+            mem_info = resource.getrusage(resource.RUSAGE_SELF)
+            return mem_info.ru_maxrss / 1024  # Convert to MB (Linux) or KB (macOS)
+    except Exception as e:
+        logger.warning(f"Could not get memory usage: {e}")
+        return 0
+
+def log_memory(step_name: str):
+    """Log memory usage at a specific step"""
+    mem_mb = get_memory_usage_mb()
+    logger.info(f"[MEMORY] {step_name}: {mem_mb:.2f} MB")
+    return mem_mb
 
 class DocumentProcessor:
     """Service for processing documents using Docling"""
@@ -41,9 +71,11 @@ class DocumentProcessor:
             raise ValueError(f"Unsupported file format: {file_extension}")
         
         logger.info(f"Processing document: {file_path.name}")
+        log_memory("DOC_PROCESSOR - Start processing")
         
         try:
             # Extract text based on file type
+            log_memory("DOC_PROCESSOR - Before text extraction")
             if file_extension == '.pdf':
                 content, metadata = await self._process_pdf(file_path)
             elif file_extension == '.docx':
@@ -58,8 +90,14 @@ class DocumentProcessor:
                 # For other formats, try basic text extraction
                 content, metadata = await self._process_generic(file_path)
             
+            content_size_mb = len(content) / 1024 / 1024
+            logger.info(f"Extracted content: {content_size_mb:.2f} MB")
+            log_memory("DOC_PROCESSOR - After text extraction")
+            
             # Create chunks with metadata
+            log_memory("DOC_PROCESSOR - Before chunking")
             chunks = self._create_chunks(content, chunk_size, chunk_overlap, metadata)
+            log_memory("DOC_PROCESSOR - After chunking")
             
             processing_time = time.time() - start_time
             
@@ -75,6 +113,7 @@ class DocumentProcessor:
             
             # Force garbage collection after chunking
             gc.collect()
+            log_memory("DOC_PROCESSOR - After GC")
             
             return result
             
@@ -92,16 +131,23 @@ class DocumentProcessor:
         metadata = {}
         
         try:
+            log_memory("PDF_PROCESSOR - Before creating parser")
             # Use the exact same approach as the working extractor
             parser = pdf_parser_v2(str(file_path))
+            log_memory("PDF_PROCESSOR - After creating parser")
+            
             parser.load_document('doc1', str(file_path))
+            log_memory("PDF_PROCESSOR - After load_document")
+            
             result = parser.parse_pdf_from_key('doc1')
+            log_memory("PDF_PROCESSOR - After parse_pdf_from_key")
             
             # Only extract full_text - don't store intermediate data structures to save memory
             # We don't need text_elements or pages dict for chunking
             full_text_parts = []
             total_pages = len(result['pages'])
             total_elements = 0
+            logger.info(f"PDF has {total_pages} pages")
             
             # Process pages one at a time and only keep the text
             for page_idx in range(total_pages):
@@ -128,12 +174,19 @@ class DocumentProcessor:
                     del page
                     del sanitized_page
             
+            log_memory("PDF_PROCESSOR - After processing all pages")
+            
             # Join all page texts
             content = "\n".join(full_text_parts)
+            content_size_mb = len(content) / 1024 / 1024
+            logger.info(f"Extracted text content: {content_size_mb:.2f} MB")
             
             # Clear intermediate data
             del full_text_parts
+            log_memory("PDF_PROCESSOR - After deleting full_text_parts")
+            
             del result
+            log_memory("PDF_PROCESSOR - After deleting result")
             
             metadata = {
                 "file_type": "pdf",
@@ -157,15 +210,18 @@ class DocumentProcessor:
             if parser is not None:
                 try:
                     del parser
+                    log_memory("PDF_PROCESSOR - After deleting parser")
                 except:
                     pass
             if result is not None:
                 try:
                     del result
+                    log_memory("PDF_PROCESSOR - After deleting result in finally")
                 except:
                     pass
             # Force garbage collection after PDF processing
             gc.collect()
+            log_memory("PDF_PROCESSOR - After final GC")
         
         # If Docling failed or extracted no content, try pypdf
         if not docling_success:
