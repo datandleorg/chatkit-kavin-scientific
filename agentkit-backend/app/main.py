@@ -90,8 +90,36 @@ async def _handle_chatkit_request(request: Request):
                 status_code=400
             )
         
+        # Extract model from request body (ChatKit sends it in params.input.inference_options.model)
+        model = "gpt-5"  # default
+        try:
+            body_json = json.loads(body)
+            
+            # ChatKit protocol structure: params.input.inference_options.model
+            if isinstance(body_json, dict) and "params" in body_json:
+                params = body_json.get("params", {})
+                if isinstance(params, dict) and "input" in params:
+                    input_data = params.get("input", {})
+                    if isinstance(input_data, dict) and "inference_options" in input_data:
+                        inference_options = input_data.get("inference_options", {})
+                        if isinstance(inference_options, dict) and "model" in inference_options:
+                            model = inference_options["model"]
+                            logger.info(f"Found model in params.input.inference_options.model: {model}")
+        except (json.JSONDecodeError, Exception) as e:
+            logger.warning(f"Could not parse request body as JSON or extract model: {e}")
+        
+        # Fallback to headers if model not found in body
+        if model == "gpt-5":
+            header_model = request.headers.get("x-model") or request.headers.get("X-Model")
+            if header_model:
+                model = header_model
+                logger.info(f"Using model from header: {model}")
+        
+        logger.info(f"Final extracted model: {model}")
+        
         # Process the request using the chatkit server
-        result = await server.process(body, {"request": request})
+        # Note: We pass the original body bytes - ChatKit SDK will process it
+        result = await server.process(body, {"request": request, "model": model})
 
         try:
             from chatkit.server import StreamingResult  # type: ignore

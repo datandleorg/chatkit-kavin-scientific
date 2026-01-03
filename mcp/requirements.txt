@@ -3,3 +3,4 @@ openpyxl>=3.1.0
 boto3>=1.26.0
 httpx>=0.25.2
 fastapi>=0.115.0
+beautifulsoup4>=4.12.2

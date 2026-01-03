@@ -177,24 +177,38 @@ class KavinScientificServer(ChatKitServer[dict[str, Any]]):
 
     async def _ensure_agent(self):
         if self.agent is None:
-            self.mcp_server = create_mcp_server()
-            await self.mcp_server.__aenter__()
-            self.agent = Agent(
-                name="Kavin Scientific Assistant",
-                instructions=AGENT_INSTRUCTIONS,
-                model="gpt-5",
-                model_settings=ModelSettings(store=True),
-                mcp_servers=[self.mcp_server],
-            )
-            logger.info("Agent and MCP server initialized")
+            try:
+                logger.info("Initializing MCP server and agent...")
+                self.mcp_server = create_mcp_server()
+                logger.info("MCP server instance created, entering context manager...")
+                await self.mcp_server.__aenter__()
+                logger.info("MCP server context entered successfully")
+                
+                logger.info("Creating Agent with MCP server...")
+                self.agent = Agent(
+                    name="Kavin Scientific Assistant",
+                    instructions=AGENT_INSTRUCTIONS,
+                    model="gpt-5",
+                    model_settings=ModelSettings(store=True),
+                    mcp_servers=[self.mcp_server],
+                )
+                logger.info("Agent and MCP server initialized successfully")
+            except Exception as e:
+                logger.error(f"Error initializing MCP server or agent: {str(e)}", exc_info=True)
+                raise
 
     async def cleanup(self):
         if self.mcp_server is not None:
             try:
+                logger.info("Cleaning up MCP server...")
                 await self.mcp_server.__aexit__(None, None, None)
+                logger.info("MCP server cleaned up successfully")
+            except Exception as e:
+                logger.error(f"Error during MCP server cleanup: {str(e)}", exc_info=True)
             finally:
                 self.mcp_server = None
                 self.agent = None
+                logger.info("Agent and MCP server references cleared")
 
     async def ensure_thread(self, thread_id: str) -> ThreadMetadata:
         """Ensure a thread exists in the store; create if missing."""
@@ -219,7 +233,9 @@ class KavinScientificServer(ChatKitServer[dict[str, Any]]):
         context: dict[str, Any],
     ) -> AsyncIterator[Any]:
         # Recreate agent/MCP each request to avoid stale/closed sessions
+        logger.info(f"Processing response for thread: {thread.id}")
         await self.cleanup()
+        logger.info("Ensuring agent and MCP server are initialized...")
         await self._ensure_agent()
 
         items_page = await self.store.load_thread_items(thread.id, None, 50, "desc", context)
