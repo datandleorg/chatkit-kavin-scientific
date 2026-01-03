@@ -46,21 +46,21 @@ export function ChatKitPanel({
           },
         }),
       },
-      typography: {
-        baseSize: 16,
-        fontFamily: "'JetBrains Mono', monospace",
-        fontFamilyMono: "'JetBrains Mono', monospace",
-        fontSources: [
-          {
-            family: 'JetBrains Mono',
-            style: 'normal',
-            weight: 300,
-            display: 'swap',
-            src: 'https://fonts.gstatic.com/s/jetbrainsmono/v23/tDbV2o-flEEny0FZhsfKu5WU4xD1OwGtT0rU3BE.woff2',
-            unicodeRange: 'U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF',
-          },
-        ],
-      },
+      // typography: {
+      //   baseSize: 16,
+      //   fontFamily: "'JetBrains Mono', monospace",
+      //   fontFamilyMono: "'JetBrains Mono', monospace",
+      //   fontSources: [
+      //     {
+      //       family: 'JetBrains Mono',
+      //       style: 'normal',
+      //       weight: 300,
+      //       display: 'swap',
+      //       src: 'https://fonts.gstatic.com/s/jetbrainsmono/v23/tDbV2o-flEEny0FZhsfKu5WU4xD1OwGtT0rU3BE.woff2',
+      //       unicodeRange: 'U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF',
+      //     },
+      //   ],
+      // },
     },
     history: {
       enabled: true,

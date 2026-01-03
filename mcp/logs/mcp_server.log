@@ -77,3 +77,82 @@
 2026-01-03 15:58:28,966 - __main__ - INFO - Successfully retrieved product details for ItemCode: ASA2539
 2026-01-03 15:58:28,966 - __main__ - INFO - ✅ Tool 'get_hyma_product_details' completed successfully in 0.53s
 2026-01-03 15:58:28,966 - __main__ - INFO - ============================================================
+2026-01-03 16:06:17,034 - __main__ - INFO - MCP stdio server shutdown complete
+2026-01-03 16:06:17,780 - __main__ - INFO - Initializing MCP Server 'quote-generator'...
+2026-01-03 16:06:17,780 - __main__ - INFO - MCP Server 'quote-generator' initialized successfully
+2026-01-03 16:06:17,780 - __main__ - INFO - MCP stdio server script started
+2026-01-03 16:06:17,781 - __main__ - INFO - ============================================================
+2026-01-03 16:06:17,781 - __main__ - INFO - Starting MCP stdio server for Kavin Scientific
+2026-01-03 16:06:17,781 - __main__ - INFO - Template path: C:\Users\ADMIN\codebase\chatkit-kavin-scientific\mcp\quote.xlsx
+2026-01-03 16:06:17,781 - __main__ - INFO - Output directory: C:\Users\ADMIN\codebase\chatkit-kavin-scientific\mcp
+2026-01-03 16:06:17,781 - __main__ - INFO - RAG Service URL: http://localhost:8001
+2026-01-03 16:06:17,782 - __main__ - INFO - ============================================================
+2026-01-03 16:06:17,782 - __main__ - INFO - Initializing stdio server...
+2026-01-03 16:06:17,784 - __main__ - INFO - stdio_server initialized, starting server.run()...
+2026-01-03 16:06:17,790 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
+2026-01-03 16:06:17,790 - __main__ - INFO - list_tools() called - preparing tool definitions
+2026-01-03 16:06:17,790 - __main__ - INFO - Returning 10 tool(s): generate_quote_for_products, file_search, search_hyma, get_hyma_product_details, search_spectrochem, get_spectrochem_product_details, search_glosil, get_glosil_product_details, search_tci, get_tci_product_details
+2026-01-03 16:06:22,562 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-03 16:06:22,562 - __main__ - INFO - ============================================================
+2026-01-03 16:06:22,563 - __main__ - INFO - 🔧 MCP Tool Call: search_hyma
+2026-01-03 16:06:22,563 - __main__ - INFO - 📥 Arguments: {
+  "chemical_name": "acetone"
+}
+2026-01-03 16:06:22,563 - __main__ - INFO - ============================================================
+2026-01-03 16:06:22,563 - __main__ - INFO - Searching Hyma Synthesis for chemical: 'acetone'
+2026-01-03 16:06:22,992 - httpx - INFO - HTTP Request: POST https://hymasynthesis.com/webservices/api/Values/GetProductsBasedOnChemicalName "HTTP/1.1 200 OK"
+2026-01-03 16:06:22,993 - __main__ - INFO - Found 14 product(s) for acetone
+2026-01-03 16:06:22,993 - __main__ - INFO - ✅ Tool 'search_hyma' completed successfully in 0.43s
+2026-01-03 16:06:22,993 - __main__ - INFO - ============================================================
+2026-01-03 16:06:27,604 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-03 16:06:27,605 - __main__ - INFO - ============================================================
+2026-01-03 16:06:27,605 - __main__ - INFO - 🔧 MCP Tool Call: get_hyma_product_details
+2026-01-03 16:06:27,605 - __main__ - INFO - 📥 Arguments: {
+  "item_code": "ALA1238"
+}
+2026-01-03 16:06:27,605 - __main__ - INFO - ============================================================
+2026-01-03 16:06:27,605 - __main__ - INFO - Getting Hyma Synthesis product details for ItemCode: 'ALA1238'
+2026-01-03 16:06:27,808 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-03 16:06:27,809 - __main__ - INFO - ============================================================
+2026-01-03 16:06:27,809 - __main__ - INFO - 🔧 MCP Tool Call: get_hyma_product_details
+2026-01-03 16:06:27,809 - __main__ - INFO - 📥 Arguments: {
+  "item_code": "ASA2019"
+}
+2026-01-03 16:06:27,809 - __main__ - INFO - ============================================================
+2026-01-03 16:06:27,809 - __main__ - INFO - Getting Hyma Synthesis product details for ItemCode: 'ASA2019'
+2026-01-03 16:06:28,010 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-03 16:06:28,011 - __main__ - INFO - ============================================================
+2026-01-03 16:06:28,011 - __main__ - INFO - 🔧 MCP Tool Call: get_hyma_product_details
+2026-01-03 16:06:28,011 - __main__ - INFO - 📥 Arguments: {
+  "item_code": "ASA2444"
+}
+2026-01-03 16:06:28,011 - __main__ - INFO - ============================================================
+2026-01-03 16:06:28,011 - __main__ - INFO - Getting Hyma Synthesis product details for ItemCode: 'ASA2444'
+2026-01-03 16:06:28,213 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-03 16:06:28,214 - __main__ - INFO - ============================================================
+2026-01-03 16:06:28,214 - __main__ - INFO - 🔧 MCP Tool Call: get_hyma_product_details
+2026-01-03 16:06:28,214 - __main__ - INFO - 📥 Arguments: {
+  "item_code": "ASA2539"
+}
+2026-01-03 16:06:28,214 - __main__ - INFO - ============================================================
+2026-01-03 16:06:28,214 - __main__ - INFO - Getting Hyma Synthesis product details for ItemCode: 'ASA2539'
+2026-01-03 16:06:28,558 - httpx - INFO - HTTP Request: GET https://hymasynthesis.com/webservices/api/Values/GetWebStockItemMstBasedOnId?ItemCode=ALA1238 "HTTP/1.1 200 OK"
+2026-01-03 16:06:28,558 - httpx - INFO - HTTP Request: GET https://hymasynthesis.com/webservices/api/Values/GetWebStockItemMstBasedOnId?ItemCode=ASA2019 "HTTP/1.1 200 OK"
+2026-01-03 16:06:28,617 - httpx - INFO - HTTP Request: GET https://hymasynthesis.com/webservices/api/Values/GetWebStockItemMstBasedOnId?ItemCode=ASA2539 "HTTP/1.1 200 OK"
+2026-01-03 16:06:28,618 - httpx - INFO - HTTP Request: GET https://hymasynthesis.com/webservices/api/Values/GetWebStockItemMstBasedOnId?ItemCode=ASA2444 "HTTP/1.1 200 OK"
+2026-01-03 16:06:28,646 - httpx - INFO - HTTP Request: GET https://hymasynthesis.com/webservices/api/Values/GetProductSpecificationOnCatalogNo?ItemCode=ALA1238 "HTTP/1.1 200 OK"
+2026-01-03 16:06:28,647 - __main__ - INFO - Successfully retrieved product details for ItemCode: ALA1238
+2026-01-03 16:06:28,647 - __main__ - INFO - ✅ Tool 'get_hyma_product_details' completed successfully in 1.04s
+2026-01-03 16:06:28,647 - __main__ - INFO - ============================================================
+2026-01-03 16:06:28,672 - httpx - INFO - HTTP Request: GET https://hymasynthesis.com/webservices/api/Values/GetProductSpecificationOnCatalogNo?ItemCode=ASA2019 "HTTP/1.1 200 OK"
+2026-01-03 16:06:28,672 - __main__ - INFO - Successfully retrieved product details for ItemCode: ASA2019
+2026-01-03 16:06:28,672 - __main__ - INFO - ✅ Tool 'get_hyma_product_details' completed successfully in 0.86s
+2026-01-03 16:06:28,672 - __main__ - INFO - ============================================================
+2026-01-03 16:06:28,749 - httpx - INFO - HTTP Request: GET https://hymasynthesis.com/webservices/api/Values/GetProductSpecificationOnCatalogNo?ItemCode=ASA2539 "HTTP/1.1 200 OK"
+2026-01-03 16:06:28,749 - httpx - INFO - HTTP Request: GET https://hymasynthesis.com/webservices/api/Values/GetProductSpecificationOnCatalogNo?ItemCode=ASA2444 "HTTP/1.1 200 OK"
+2026-01-03 16:06:28,749 - __main__ - INFO - Successfully retrieved product details for ItemCode: ASA2539
+2026-01-03 16:06:28,750 - __main__ - INFO - ✅ Tool 'get_hyma_product_details' completed successfully in 0.54s
+2026-01-03 16:06:28,750 - __main__ - INFO - ============================================================
+2026-01-03 16:06:28,750 - __main__ - INFO - Successfully retrieved product details for ItemCode: ASA2444
+2026-01-03 16:06:28,750 - __main__ - INFO - ✅ Tool 'get_hyma_product_details' completed successfully in 0.74s
+2026-01-03 16:06:28,750 - __main__ - INFO - ============================================================
