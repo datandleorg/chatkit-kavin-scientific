@@ -22,12 +22,25 @@ lxml>=4.9.3
 # LLM integration
 openai>=1.0.0
 
+# OpenAI Agent SDKs
+openai-agents>=0.6.0
+openai-chatkit>=1.0.0
+
+# HTTP client
+httpx>=0.25.2
+
+# Environment variables
+python-dotenv>=1.0.0
+
+# Cloud storage
+boto3>=1.26.0
+
 # Utilities
 pydantic>=2.6.0
-python-dotenv>=1.0.0
-httpx>=0.25.2
 aiofiles>=23.2.1
 
 # Development and testing
 pytest>=7.4.3
 pytest-asyncio>=0.21.1
+pytest-mock>=3.12.0
+

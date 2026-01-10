@@ -443,10 +443,10 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
                     "llm_provider": "openai"
                 }
                 
-                logger.debug(f"Calling RAG service at {RAG_SERVICE_URL}/search")
+                logger.debug(f"Calling RAG service at {RAG_SERVICE_URL}/api/rag/search")
                 async with httpx.AsyncClient(timeout=30.0) as client:
                     response = await client.post(
-                        f"{RAG_SERVICE_URL}/search",
+                        f"{RAG_SERVICE_URL}/api/rag/search",
                         json=search_data,
                         params=params
                     )
@@ -485,9 +485,9 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
             logger.info(f"Getting document info for ID: {document_id}")
             
             try:
-                logger.debug(f"Calling RAG service at {RAG_SERVICE_URL}/documents/{document_id}")
+                logger.debug(f"Calling RAG service at {RAG_SERVICE_URL}/api/rag/documents/{document_id}")
                 async with httpx.AsyncClient(timeout=10.0) as client:
-                    response = await client.get(f"{RAG_SERVICE_URL}/documents/{document_id}")
+                    response = await client.get(f"{RAG_SERVICE_URL}/api/rag/documents/{document_id}")
                     
                     logger.debug(f"RAG service response status: {response.status_code}")
                     
@@ -520,9 +520,9 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
             logger.info("Listing all collections from RAG service")
             
             try:
-                logger.debug(f"Calling RAG service at {RAG_SERVICE_URL}/collections")
+                logger.debug(f"Calling RAG service at {RAG_SERVICE_URL}/api/rag/collections")
                 async with httpx.AsyncClient(timeout=10.0) as client:
-                    response = await client.get(f"{RAG_SERVICE_URL}/collections")
+                    response = await client.get(f"{RAG_SERVICE_URL}/api/rag/collections")
                     
                     logger.debug(f"RAG service response status: {response.status_code}")
                     

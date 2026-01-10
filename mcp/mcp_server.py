@@ -58,7 +58,7 @@ def upload_to_do_spaces(file_path: str, file_name: str) -> str:
         raise Exception(f"Failed to upload to DigitalOcean Spaces: {str(e)}")
 
 # --- RAG Service Configuration ---
-RAG_SERVICE_URL = "http://localhost:8001"
+RAG_SERVICE_URL = os.getenv("RAG_SERVICE_URL", "http://localhost:8000")
 
 # Initialize MCP server for quote generation and file search
 mcp = FastMCP(
@@ -188,7 +188,7 @@ async def file_search(
         # if document_id:
         #     endpoint = f"{RAG_SERVICE_URL}/documents/{document_id}/search"
         # else:
-        endpoint = f"{RAG_SERVICE_URL}/search"
+        endpoint = f"{RAG_SERVICE_URL}/api/rag/search"
 
         text_only = True
         
@@ -259,7 +259,7 @@ async def get_document_info(document_id: str) -> str:
     """
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(f"{RAG_SERVICE_URL}/documents/{document_id}")
+            response = await client.get(f"{RAG_SERVICE_URL}/api/rag/documents/{document_id}")
             
             if response.status_code == 200:
                 doc_info = response.json()
@@ -280,7 +280,7 @@ async def list_collections() -> str:
     """
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(f"{RAG_SERVICE_URL}/collections")
+            response = await client.get(f"{RAG_SERVICE_URL}/api/rag/collections")
             
             if response.status_code == 200:
                 collections_data = response.json()

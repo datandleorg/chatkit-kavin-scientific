@@ -16,6 +16,7 @@ from services.document_processor import DocumentProcessor
 from services.vector_store import VectorStore
 from services.hybrid_search import HybridSearch
 from services.llm_service import LLMService
+from services.embedding_service import OpenAIEmbeddingService
 from models.schemas import DocumentResponse, SearchResponse, SearchRequest
 
 # Configure logging
@@ -54,9 +55,17 @@ async def startup_event():
     
     logger.info("Starting RAG Service...")
     
-    # Initialize vector store with environment variables
+    # Initialize embedding service
+    embedding_model = os.getenv('EMBEDDING_MODEL', 'text-embedding-3-small')
+    cache_ttl_days = int(os.getenv('EMBEDDING_CACHE_TTL_DAYS', '30'))
+    embedding_service = OpenAIEmbeddingService(
+        model=embedding_model,
+        cache_ttl_days=cache_ttl_days
+    )
+    
+    # Initialize vector store with embedding service
     vector_store = VectorStore()
-    await vector_store.initialize()
+    await vector_store.initialize(embedding_service=embedding_service)
     
     # Initialize hybrid search
     hybrid_search = HybridSearch(vector_store)
@@ -434,6 +443,19 @@ async def search_single_document(
     except Exception as e:
         logger.error(f"Document search failed: {e}")
         raise HTTPException(status_code=500, detail=f"Document search failed: {str(e)}")
+
+@app.get("/embedding/cache/stats")
+async def get_cache_stats():
+    """Get embedding cache statistics"""
+    try:
+        if vector_store and vector_store.embedding_service:
+            stats = await vector_store.embedding_service.get_cache_stats()
+            return stats
+        else:
+            return {"error": "Embedding service not initialized"}
+    except Exception as e:
+        logger.error(f"Failed to get cache stats: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get cache stats: {str(e)}")
 
 @app.delete("/admin/reset")
 async def reset_database():

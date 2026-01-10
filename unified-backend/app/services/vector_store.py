@@ -7,7 +7,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo import ASCENDING, DESCENDING
 import os
 
-from services.embedding_service import OpenAIEmbeddingService
+from app.services.embedding_service import OpenAIEmbeddingService
 
 logger = logging.getLogger(__name__)
 
@@ -32,11 +32,22 @@ class VectorStore:
     async def initialize(self, embedding_service: OpenAIEmbeddingService = None):
         """Initialize MongoDB client and embedding service"""
         try:
-            logger.info(f"Connecting to MongoDB: {self.connection_string}")
+            # Log connection string (mask password for security)
+            masked_conn = self.connection_string
+            if '@' in masked_conn:
+                parts = masked_conn.split('@')
+                if len(parts) == 2:
+                    masked_conn = f"mongodb://***@{parts[1]}"
+            logger.info(f"Connecting to MongoDB: {masked_conn}")
+            logger.info(f"Database name: {self.database_name}")
             
             # Initialize MongoDB client
             self.client = AsyncIOMotorClient(self.connection_string)
             self.db = self.client[self.database_name]
+            
+            # Test connection
+            await self.client.admin.command('ping')
+            logger.info("MongoDB connection successful")
             
             # Initialize embedding service
             if embedding_service:

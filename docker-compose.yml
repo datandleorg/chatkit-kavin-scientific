@@ -31,92 +31,59 @@ services:
       timeout: 5s
       retries: 5
 
-  # RAG Service
-  rag-service:
+  # Unified Backend Service (RAG + ChatKit)
+  unified-backend:
     build:
-      context: ./rag-service
+      context: ./unified-backend
       dockerfile: Dockerfile
-    container_name: rag_service
+    container_name: unified_backend
     restart: unless-stopped
     ports:
       - "8000:8000"
     env_file:
       - ./.env
     environment:
+      - PORT=8000
       - MONGODB_CONNECTION_STRING=mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-password123}@mongodb:27017/${MONGO_DATABASE:-rag_db}?authSource=admin
       - DATABASE_NAME=${MONGO_DATABASE:-rag_db}
-    depends_on:
-      mongodb:
-        condition: service_healthy
-    volumes:
-      - ./rag-service/uploads:/app/uploads:rw
-      - ./rag-service/config.env:/app/config.env:ro
-    networks:
-      - app_network
-    # Memory allocation: 10GB for RAG service (PDF processing, embeddings, SentenceTransformer model)
-    # Increased for 16GB droplet - allows processing larger PDFs without OOM
-    # This is the most memory-intensive service
-    deploy:
-      resources:
-        limits:
-          memory: 10G
-        reservations:
-          memory: 3G
-    healthcheck:
-      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health', timeout=5)"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  # AgentKit Backend
-  agentkit-backend:
-    build:
-      context: ./agentkit-backend
-      dockerfile: Dockerfile
-    container_name: agentkit_backend
-    restart: unless-stopped
-    ports:
-      - "8002:8002"
-    env_file:
-      - ./.env
-    environment:
-      - PORT=8002
-      - RAG_SERVICE_URL=http://rag-service:8000
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-text-embedding-3-small}
+      - EMBEDDING_CACHE_TTL_DAYS=${EMBEDDING_CACHE_TTL_DAYS:-30}
       # MCP Server path (mounted at /app/mcp in container)
       - MCP_BASE_DIR=/app/mcp
       # MCP Server environment variables
       - TEMPLATE_PATH=/app/mcp/quote.xlsx
       - OUTPUT_DIR=/app/mcp
-      # RAG Service URL for MCP server (must use Docker service name, not localhost)
-      - RAG_SERVICE_URL=http://rag-service:8000
+      # RAG Service URL for MCP server (internal, no longer needed for HTTP but kept for compatibility)
+      - RAG_SERVICE_URL=http://unified-backend:8000
       - DO_ACCESS_KEY=${DO_ACCESS_KEY:-}
       - DO_SECRET_KEY=${DO_SECRET_KEY:-}
       - DO_SPACE_NAME=${DO_SPACE_NAME:-optimus}
       - DO_REGION=${DO_REGION:-ams3}
       - DO_ENDPOINT=${DO_ENDPOINT:-ams3.digitaloceanspaces.com}
     depends_on:
-      rag-service:
+      mongodb:
         condition: service_healthy
     volumes:
-      # Mount MCP server directory at /app/mcp (agent.py expects BASE_DIR/mcp where BASE_DIR is /app)
-      # Since agent.py is at /app/app/agent.py, BASE_DIR (parent.parent.parent) = /app
-      # So MCP_SERVER_SCRIPT = /app/mcp/mcp_server_stdio.py
-      - ./mcp:/app/mcp:rw
-      # Environment file
-      - ./agentkit-backend/.env:/app/.env:ro
+      # Mount MCP server directory at /app/mcp
+      - ./mcp:/app/mcp:ro
+      # Uploads directory
+      - ./unified-backend/uploads:/app/uploads:rw
+      # Templates directory
+      - ./unified-backend/templates:/app/templates:ro
+      # Outputs directory
+      - ./unified-backend/outputs:/app/outputs:rw
     networks:
       - app_network
-    # Memory allocation: 2GB for backend API service (Python FastAPI)
-    # Increased for 16GB droplet - allows handling more concurrent requests
+    # Memory allocation: 4GB for unified backend (reduced from 10GB since no local model)
+    # OpenAI embeddings don't require local model loading
     deploy:
       resources:
         limits:
-          memory: 2G
+          memory: 4G
         reservations:
-          memory: 512M
+          memory: 1G
     healthcheck:
-      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8002/health', timeout=5)"]
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -133,9 +100,9 @@ services:
       - "8081:80"    # Production: HTTP for domain (kavin.botnetworks.in)
       # - "443:443"  # HTTPS - uncomment if needed (SSL already set up on host)
     environment:
-      - BACKEND_URL=http://agentkit-backend:8002
+      - BACKEND_URL=http://unified-backend:8000
     depends_on:
-      - agentkit-backend
+      - unified-backend
     networks:
       - app_network
     # Memory allocation: 512MB for frontend (nginx, very lightweight)
