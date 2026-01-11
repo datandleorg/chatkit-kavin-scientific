@@ -46,8 +46,19 @@ class VectorStore:
             self.db = self.client[self.database_name]
             
             # Test connection
-            await self.client.admin.command('ping')
-            logger.info("MongoDB connection successful")
+            try:
+                await self.client.admin.command('ping')
+                logger.info("MongoDB connection successful")
+            except Exception as ping_error:
+                # Check if it's an auth error
+                if "authentication" in str(ping_error).lower() or "unauthorized" in str(ping_error).lower():
+                    logger.error(f"MongoDB authentication failed: {ping_error}")
+                    logger.error("Please set MONGODB_CONNECTION_STRING with proper credentials")
+                    logger.error("Example: mongodb://username:password@host:port/database?authSource=admin")
+                    raise ConnectionError(f"MongoDB authentication required: {ping_error}")
+                else:
+                    logger.error(f"MongoDB connection test failed: {ping_error}")
+                    raise
             
             # Initialize embedding service
             if embedding_service:
@@ -80,24 +91,49 @@ class VectorStore:
         """Create necessary indexes for performance"""
         try:
             # Create text index for full-text search
-            await self.db.documents.create_index([
-                ("text", "text"),
-                ("filename", "text")
-            ])
+            try:
+                await self.db.documents.create_index([
+                    ("text", "text"),
+                    ("filename", "text")
+                ])
+            except Exception as idx_error:
+                # Check if it's an auth error
+                if "authentication" in str(idx_error).lower() or "unauthorized" in str(idx_error).lower():
+                    logger.warning(f"MongoDB authentication required for index creation. Index may already exist or you need proper credentials: {idx_error}")
+                elif "already exists" in str(idx_error).lower() or "E11000" in str(idx_error):
+                    logger.debug(f"Text index already exists, skipping")
+                else:
+                    logger.warning(f"Could not create text index: {idx_error}")
             
             # Create compound index for document queries
-            await self.db.documents.create_index([
-                ("document_id", ASCENDING),
-                ("chunk_index", ASCENDING)
-            ])
+            try:
+                await self.db.documents.create_index([
+                    ("document_id", ASCENDING),
+                    ("chunk_index", ASCENDING)
+                ])
+            except Exception as idx_error:
+                if "authentication" in str(idx_error).lower() or "unauthorized" in str(idx_error).lower():
+                    logger.warning(f"MongoDB authentication required for index creation: {idx_error}")
+                elif "already exists" in str(idx_error).lower() or "E11000" in str(idx_error):
+                    logger.debug(f"Compound index already exists, skipping")
+                else:
+                    logger.warning(f"Could not create compound index: {idx_error}")
             
             # Create index for metadata filtering
-            await self.db.documents.create_index([
-                ("filename", ASCENDING),
-                ("created_at", DESCENDING)
-            ])
+            try:
+                await self.db.documents.create_index([
+                    ("filename", ASCENDING),
+                    ("created_at", DESCENDING)
+                ])
+            except Exception as idx_error:
+                if "authentication" in str(idx_error).lower() or "unauthorized" in str(idx_error).lower():
+                    logger.warning(f"MongoDB authentication required for index creation: {idx_error}")
+                elif "already exists" in str(idx_error).lower() or "E11000" in str(idx_error):
+                    logger.debug(f"Metadata index already exists, skipping")
+                else:
+                    logger.warning(f"Could not create metadata index: {idx_error}")
             
-            logger.info("Created MongoDB indexes for better performance")
+            logger.info("MongoDB indexes checked/created (some may require authentication)")
             
         except Exception as e:
             logger.error(f"Failed to create indexes: {e}")

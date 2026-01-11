@@ -63,13 +63,27 @@ class OpenAIEmbeddingService:
                     logger.warning(f"Could not create hash index (may already exist): {idx_error}")
             
             # Create TTL index for automatic expiration
-            await self.cache_collection.create_index(
-                [("created_at", 1)],
-                expireAfterSeconds=int(self.cache_ttl.total_seconds())
-            )
+            try:
+                await self.cache_collection.create_index(
+                    [("created_at", 1)],
+                    expireAfterSeconds=int(self.cache_ttl.total_seconds())
+                )
+            except Exception as ttl_error:
+                # Check if it's an auth error
+                if "authentication" in str(ttl_error).lower() or "unauthorized" in str(ttl_error).lower():
+                    logger.warning(f"MongoDB authentication required for TTL index creation. Cache TTL expiration may not work without proper credentials: {ttl_error}")
+                elif "already exists" in str(ttl_error).lower() or "E11000" in str(ttl_error):
+                    logger.debug(f"TTL index already exists, skipping")
+                else:
+                    logger.warning(f"Could not create TTL index: {ttl_error}")
             
             logger.info("Embedding cache initialized in MongoDB")
         except Exception as e:
+            # Only raise if it's a critical error (not just index creation)
+            if "authentication" in str(e).lower() or "unauthorized" in str(e).lower():
+                logger.error(f"Failed to initialize embedding cache due to MongoDB authentication: {e}")
+                logger.error("Please set MONGODB_CONNECTION_STRING with proper credentials (e.g., mongodb://user:password@host:port/db?authSource=admin)")
+                raise
             logger.error(f"Failed to initialize embedding cache: {e}")
             raise
     
@@ -96,7 +110,7 @@ class OpenAIEmbeddingService:
         Returns:
             Dictionary mapping hash to embedding
         """
-        if not self.cache_collection or not text_hashes:
+        if self.cache_collection is None or not text_hashes:
             return {}
         
         try:
@@ -116,7 +130,7 @@ class OpenAIEmbeddingService:
         Args:
             cache_entries: List of cache entry dictionaries
         """
-        if not self.cache_collection or not cache_entries:
+        if self.cache_collection is None or not cache_entries:
             return
         
         try:
@@ -238,7 +252,7 @@ class OpenAIEmbeddingService:
         Returns:
             Dictionary with cache statistics
         """
-        if not self.cache_collection:
+        if self.cache_collection is None:
             return {"error": "Cache not initialized"}
         
         try:

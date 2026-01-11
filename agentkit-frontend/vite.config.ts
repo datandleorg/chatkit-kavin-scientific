@@ -2,7 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 
 // Point to agentkit-backend (port 8005) instead of RAG service (port 8001)
-const backendTarget = process.env.BACKEND_URL ?? "http://localhost:8005";
+const backendTarget = process.env.BACKEND_URL ?? "http://localhost:8000";
 
 export default defineConfig({
   plugins: [react()],
