@@ -65,10 +65,10 @@ VECTOR_SIZE=1536
 MONGODB_CONNECTION_STRING=mongodb://admin:password123@mongodb:27017/rag_db?authSource=admin
 DATABASE_NAME=rag_db
 
-# MCP Server
-MCP_BASE_DIR=/app/mcp
-TEMPLATE_PATH=/app/mcp/quote.xlsx
-OUTPUT_DIR=/app/mcp
+# MCP Server (now part of unified-backend)
+# MCP server is located at app/mcp/ within unified-backend
+TEMPLATE_PATH=./app/mcp/quote.xlsx
+OUTPUT_DIR=./app/mcp
 RAG_SERVICE_URL=http://unified-backend:8000
 
 # DigitalOcean Spaces

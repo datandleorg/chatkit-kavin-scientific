@@ -1,4 +1,5 @@
 import { ChatKit, useChatKit, type UseChatKitOptions } from "@openai/chatkit-react";
+import { useEffect, useState } from "react";
 import type { ColorScheme } from "../hooks/useColorScheme";
 import {
   SUPPORT_CHATKIT_API_DOMAIN_KEY,
@@ -18,6 +19,18 @@ export function ChatKitPanel({
   onThreadChange,
   onResponseCompleted,
 }: ChatKitPanelProps) {
+  // Detect mobile screen size for responsive density
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const options: UseChatKitOptions = {
     api: {
@@ -28,7 +41,7 @@ export function ChatKitPanel({
     theme: {
       colorScheme: theme,
       radius: "soft",
-      density: "spacious",
+      density: isMobile ? "compact" : "spacious",
       color: {
         grayscale: {
           hue: 0,
@@ -83,11 +96,21 @@ export function ChatKitPanel({
           description: 'Balanced intelligence',
           default: true,
         },
-        {
-          id: 'gpt-4o',
-          label: 'GPT-4o',
-          description: 'GPT-4 Optimized',
-        }
+        // {
+        //   id: 'o1-preview',
+        //   label: 'O1 Preview',
+        //   description: 'With thinking tokens',
+        // },
+        // {
+        //   id: 'o3-mini',
+        //   label: 'O3 Mini',
+        //   description: 'With thinking tokens',
+        // },
+        // {
+        //   id: 'gpt-4o',
+        //   label: 'GPT-4o',
+        //   description: 'GPT-4 Optimized',
+        // }
       ],
     },
     threadItemActions: {
@@ -108,8 +131,15 @@ export function ChatKitPanel({
   const chatkit = useChatKit(options);
 
   return (
-    <div className="relative h-full w-full min-w-full overflow-hidden bg-white dark:bg-slate-900">
-      <ChatKit control={chatkit.control} className="block h-full w-full" />
+    <div 
+      className="relative h-full w-full min-w-0 min-h-0 overflow-hidden bg-white dark:bg-slate-900 sm:min-w-full"
+      style={{ height: '100%', minHeight: 0, display: 'flex', flexDirection: 'column' }}
+    >
+      <ChatKit 
+        control={chatkit.control} 
+        className="block h-full w-full max-w-full min-h-0"
+        style={{ height: '100%', minHeight: 0, flex: 1, display: 'block' }}
+      />
     </div>
   );
 }

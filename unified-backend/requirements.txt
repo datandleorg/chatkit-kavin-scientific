@@ -26,6 +26,9 @@ openai>=1.0.0
 openai-agents>=0.6.0
 openai-chatkit>=1.0.0
 
+# MCP (Model Context Protocol) for agent tools
+mcp>=1.0.0
+
 # HTTP client
 httpx>=0.25.2
 

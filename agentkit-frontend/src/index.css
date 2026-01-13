@@ -10,11 +10,66 @@ html,
 body,
 #root {
   height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Ensure full height on mobile browsers */
+@supports (-webkit-touch-callout: none) {
+  html,
+  body,
+  #root {
+    height: -webkit-fill-available;
+  }
 }
 
 body {
-  margin: 0;
   font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   background: rgb(241 245 249);
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 640px) {
+  html {
+    height: 100vh;
+    height: -webkit-fill-available;
+  }
+  
+  body {
+    font-size: 14px;
+    height: 100vh;
+    height: -webkit-fill-available;
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    overflow: hidden;
+  }
+  
+  #root {
+    height: 100vh;
+    height: -webkit-fill-available;
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    overflow: hidden;
+  }
+  
+  /* Prevent horizontal scrolling on mobile */
+  * {
+    max-width: 100vw;
+    box-sizing: border-box;
+  }
+  
+  /* Ensure proper touch handling on mobile */
+  html {
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Better touch target sizes on mobile */
+  button, a, input, textarea, select {
+    touch-action: manipulation;
+    min-height: 44px;
+  }
 }
 

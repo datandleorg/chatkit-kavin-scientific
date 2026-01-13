@@ -139,8 +139,48 @@ class OpenAIEmbeddingService:
             logger.debug(f"Saved {len(cache_entries)} embeddings to cache")
         except Exception as e:
             # Ignore duplicate key errors (already cached)
-            if "duplicate key" not in str(e).lower() and "E11000" not in str(e):
-                logger.warning(f"Error saving to cache: {e}")
+            # Check if it's a BulkWriteError from pymongo/motor
+            error_type = type(e).__name__
+            
+            # Check for duplicate key errors without converting full exception to string
+            # (which would include embedding vectors in the error message)
+            is_duplicate_error = False
+            error_code = None
+            error_message = None
+            
+            if error_type == "BulkWriteError":
+                # Check the details attribute for writeErrors
+                try:
+                    details = getattr(e, 'details', {})
+                    write_errors = details.get('writeErrors', [])
+                    if write_errors:
+                        # Check if all errors are duplicate key errors (code 11000)
+                        all_duplicates = all(we.get('code') == 11000 for we in write_errors)
+                        if all_duplicates:
+                            is_duplicate_error = True
+                            logger.debug(f"Skipped {len(write_errors)} already-cached embeddings")
+                        else:
+                            # Extract error code and message without embedding data
+                            error_code = write_errors[0].get('code') if write_errors else None
+                            error_message = write_errors[0].get('errmsg', '')[:200] if write_errors else str(e)[:200]
+                except Exception as parse_error:
+                    # If we can't parse, check error type name only
+                    if "duplicate" in error_type.lower() or "E11000" in error_type:
+                        is_duplicate_error = True
+            else:
+                # For non-BulkWriteError, check exception type and message prefix only
+                error_message = str(e)[:500]  # Only first 500 chars to avoid embedding vectors
+                if "duplicate key" in error_message.lower() or "E11000" in error_message:
+                    is_duplicate_error = True
+            
+            if not is_duplicate_error:
+                # Real error occurred - log it without embedding data
+                safe_error_msg = error_message or (f"{error_type}: {str(e)[:200]}" if len(str(e)) < 200 else f"{error_type}: {str(e)[:200]}...")
+                if error_code:
+                    logger.warning(f"Error saving to cache: {error_type} (code: {error_code}) - {safe_error_msg}")
+                else:
+                    logger.warning(f"Error saving to cache: {safe_error_msg}")
+            # If it's a duplicate error, silently ignore it (already cached)
     
     async def embed_text(self, text: str) -> List[float]:
         """
