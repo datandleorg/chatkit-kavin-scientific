@@ -28,7 +28,6 @@ Thumbs.db
 
 # Project specific
 multimodal_rag/
-chatkit/
 data/mongodb/
 mcp/logs/
 rag-service/uploads/
