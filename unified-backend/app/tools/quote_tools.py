@@ -57,25 +57,15 @@ def upload_to_do_spaces(file_path: str, file_name: str, delete_after_upload: boo
         if not file_name.endswith('.xlsx'):
             content_type = 'application/octet-stream'
         
-        # Upload file with ContentType (DigitalOcean Spaces may not support ACL in ExtraArgs)
-        s3_client.upload_file(
-            file_path,
-            DO_SPACE_NAME,
-            file_name,
-            ExtraArgs={
-                'ContentType': content_type
-            }
-        )
-        
-        # Set file to public-read after upload (DigitalOcean Spaces approach)
-        try:
-            s3_client.put_object_acl(
+        # Read file content and upload using put_object (better compatibility with DigitalOcean Spaces)
+        # Note: DigitalOcean Spaces may not support ACL parameter - if bucket is public, ACL is not needed
+        with open(file_path, 'rb') as file_data:
+            s3_client.put_object(
                 Bucket=DO_SPACE_NAME,
                 Key=file_name,
-                ACL='public-read'
+                Body=file_data,
+                ContentType=content_type
             )
-        except Exception as acl_error:
-            logger.warning(f"Could not set ACL to public-read (file may still be accessible): {acl_error}")
         
         public_url = f"https://{DO_SPACE_NAME}.{DO_ENDPOINT}/{file_name}"
         logger.info(f"Successfully uploaded file. Public URL: {public_url}")
