@@ -55,8 +55,8 @@ services:
       - OUTPUT_DIR=/app/mcp
       # RAG Service URL for MCP server (internal, no longer needed for HTTP but kept for compatibility)
       - RAG_SERVICE_URL=http://unified-backend:8000
-      - DO_ACCESS_KEY=${DO_ACCESS_KEY:-}
-      - DO_SECRET_KEY=${DO_SECRET_KEY:-}
+      - DO_ACCESS_KEY=${DO_ACCESS_KEY:-DO00DK7ZU22GLQVH767D}
+      - DO_SECRET_KEY=${DO_SECRET_KEY:-SPO1OnYRpw5pvBwh9dwSfec6c5eP+LNY1qYkxEY8TPs}
       - DO_SPACE_NAME=${DO_SPACE_NAME:-optimus}
       - DO_REGION=${DO_REGION:-ams3}
       - DO_ENDPOINT=${DO_ENDPOINT:-ams3.digitaloceanspaces.com}
