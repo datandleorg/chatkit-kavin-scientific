@@ -52,20 +52,12 @@ def upload_to_do_spaces(file_path: str, file_name: str, delete_after_upload: boo
             aws_secret_access_key=DO_SECRET_KEY
         )
         
-        # Determine content type based on file extension
-        content_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        if not file_name.endswith('.xlsx'):
-            content_type = 'application/octet-stream'
-        
-        # Read file content and upload using put_object (better compatibility with DigitalOcean Spaces)
-        # Note: DigitalOcean Spaces may not support ACL parameter - if bucket is public, ACL is not needed
-        with open(file_path, 'rb') as file_data:
-            s3_client.put_object(
-                Bucket=DO_SPACE_NAME,
-                Key=file_name,
-                Body=file_data,
-                ContentType=content_type
-            )
+        s3_client.upload_file(
+            file_path,
+            DO_SPACE_NAME,
+            file_name,
+            ExtraArgs={'ACL': 'public-read'}
+        )
         
         public_url = f"https://{DO_SPACE_NAME}.{DO_ENDPOINT}/{file_name}"
         logger.info(f"Successfully uploaded file. Public URL: {public_url}")
