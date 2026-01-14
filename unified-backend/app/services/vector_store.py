@@ -72,6 +72,9 @@ class VectorStore:
                     cache_ttl_days=cache_ttl_days
                 )
             
+            # Ensure required collections exist
+            await self._ensure_collections()
+            
             # Initialize cache
             await self.embedding_service.initialize_cache(self.db)
             
@@ -86,6 +89,27 @@ class VectorStore:
         except Exception as e:
             logger.error(f"Failed to initialize VectorStore: {e}")
             raise
+    
+    async def _ensure_collections(self):
+        """Ensure required collections (embedding_cache and documents) exist"""
+        try:
+            required_collections = ["embedding_cache", "documents"]
+            existing_collections = await self.db.list_collection_names()
+            
+            for collection_name in required_collections:
+                if collection_name not in existing_collections:
+                    # Create collection by inserting and deleting a dummy document
+                    await self.db[collection_name].insert_one({
+                        "_temp": True,
+                        "created_at": datetime.now()
+                    })
+                    await self.db[collection_name].delete_one({"_temp": True})
+                    logger.info(f"Created collection: {collection_name}")
+                else:
+                    logger.debug(f"Collection {collection_name} already exists")
+                    
+        except Exception as e:
+            logger.warning(f"Failed to ensure collections exist (collections may be created lazily): {e}")
     
     async def _create_indexes(self):
         """Create necessary indexes for performance"""
@@ -466,6 +490,63 @@ class VectorStore:
             
         except Exception as e:
             logger.error(f"Failed to get document {document_id}: {e}")
+            raise
+    
+    async def list_documents(self, collection_name: str = "documents") -> List[Dict[str, Any]]:
+        """List all unique documents with their metadata"""
+        try:
+            # Use aggregation to get unique documents with metadata
+            pipeline = [
+                {
+                    "$group": {
+                        "_id": "$document_id",
+                        "filename": {"$first": "$filename"},
+                        "file_type": {"$first": "$file_type"},
+                        "created_at": {"$first": "$created_at"},
+                        "ingestion_date": {"$first": "$ingestion_date"},
+                        "chunks_count": {"$sum": 1},
+                        "metadata": {"$first": "$metadata"}
+                    }
+                },
+                {
+                    "$project": {
+                        "_id": 0,
+                        "document_id": "$_id",
+                        "filename": 1,
+                        "file_type": 1,
+                        "created_at": 1,
+                        "ingestion_date": 1,
+                        "chunks_count": 1,
+                        "metadata": 1
+                    }
+                },
+                {
+                    "$sort": {"created_at": DESCENDING}
+                }
+            ]
+            
+            cursor = self.db[collection_name].aggregate(pipeline)
+            documents = await cursor.to_list(length=None)
+            
+            return documents
+            
+        except Exception as e:
+            logger.error(f"Failed to list documents: {e}")
+            raise
+    
+    async def delete_document(self, document_id: str, collection_name: str = "documents") -> bool:
+        """Delete a document and all its chunks by document_id"""
+        try:
+            # Delete all chunks with this document_id
+            result = await self.db[collection_name].delete_many({"document_id": document_id})
+            
+            deleted_count = result.deleted_count
+            logger.info(f"Deleted document {document_id}: {deleted_count} chunks removed")
+            
+            return deleted_count > 0
+            
+        except Exception as e:
+            logger.error(f"Failed to delete document {document_id}: {e}")
             raise
     
     async def close(self):

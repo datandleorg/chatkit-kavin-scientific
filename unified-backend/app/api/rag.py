@@ -288,14 +288,37 @@ async def get_cache_stats():
         raise HTTPException(status_code=500, detail=f"Failed to get cache stats: {str(e)}")
 
 
+@router.get("/documents")
+async def list_documents(
+    collection_name: str = Query(default="documents", description="Collection name to list documents from")
+):
+    """List all ingested documents with their metadata"""
+    if not vector_store:
+        raise HTTPException(status_code=503, detail="Vector store not initialized")
+    
+    try:
+        documents = await vector_store.list_documents(collection_name=collection_name)
+        return {
+            "documents": documents,
+            "total": len(documents),
+            "collection_name": collection_name
+        }
+    except Exception as e:
+        logger.error(f"Failed to list documents: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to list documents: {str(e)}")
+
+
 @router.get("/documents/{document_id}")
-async def get_document(document_id: str):
+async def get_document(
+    document_id: str,
+    collection_name: str = Query(default="documents", description="Collection name to get document from")
+):
     """Get document metadata by ID"""
     if not vector_store:
         raise HTTPException(status_code=503, detail="Vector store not initialized")
     
     try:
-        document = await vector_store.get_document(document_id)
+        document = await vector_store.get_document(document_id, collection_name=collection_name)
         if not document:
             raise HTTPException(status_code=404, detail="Document not found")
         return document
@@ -304,4 +327,29 @@ async def get_document(document_id: str):
     except Exception as e:
         logger.error(f"Failed to get document: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get document: {str(e)}")
+
+
+@router.delete("/documents/{document_id}")
+async def delete_document(
+    document_id: str,
+    collection_name: str = Query(default="documents", description="Collection name to delete document from")
+):
+    """Delete a document and all its chunks by ID"""
+    if not vector_store:
+        raise HTTPException(status_code=503, detail="Vector store not initialized")
+    
+    try:
+        deleted = await vector_store.delete_document(document_id, collection_name=collection_name)
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Document not found")
+        return {
+            "message": f"Document {document_id} deleted successfully",
+            "document_id": document_id,
+            "collection_name": collection_name
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to delete document: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete document: {str(e)}")
 
