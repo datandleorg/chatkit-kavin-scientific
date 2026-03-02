@@ -156,3 +156,679 @@
 2026-01-03 16:06:28,750 - __main__ - INFO - Successfully retrieved product details for ItemCode: ASA2444
 2026-01-03 16:06:28,750 - __main__ - INFO - ✅ Tool 'get_hyma_product_details' completed successfully in 0.74s
 2026-01-03 16:06:28,750 - __main__ - INFO - ============================================================
+2026-01-10 18:09:06,300 - __main__ - INFO - Initializing MCP Server 'quote-generator'...
+2026-01-10 18:09:06,300 - __main__ - INFO - MCP Server 'quote-generator' initialized successfully
+2026-01-10 18:09:06,300 - __main__ - INFO - MCP stdio server script started
+2026-01-10 18:09:06,301 - __main__ - INFO - ============================================================
+2026-01-10 18:09:06,301 - __main__ - INFO - Starting MCP stdio server for Kavin Scientific
+2026-01-10 18:09:06,301 - __main__ - INFO - Template path: /Users/saravanan/chatkit-kavin-scientific/mcp/quote.xlsx
+2026-01-10 18:09:06,301 - __main__ - INFO - Output directory: /Users/saravanan/chatkit-kavin-scientific/mcp
+2026-01-10 18:09:06,301 - __main__ - INFO - RAG Service URL: http://localhost:8000
+2026-01-10 18:09:06,301 - __main__ - INFO - ============================================================
+2026-01-10 18:09:06,301 - __main__ - INFO - Initializing stdio server...
+2026-01-10 18:09:06,302 - __main__ - INFO - stdio_server initialized, starting server.run()...
+2026-01-10 18:09:06,307 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
+2026-01-10 18:09:06,307 - __main__ - INFO - list_tools() called - preparing tool definitions
+2026-01-10 18:09:06,308 - __main__ - INFO - Returning 10 tool(s): generate_quote_for_products, file_search, search_hyma, get_hyma_product_details, search_spectrochem, get_spectrochem_product_details, search_glosil, get_glosil_product_details, search_tci, get_tci_product_details
+2026-01-10 18:09:28,551 - __main__ - INFO - MCP stdio server shutdown complete
+2026-01-10 18:09:29,027 - __main__ - INFO - Initializing MCP Server 'quote-generator'...
+2026-01-10 18:09:29,027 - __main__ - INFO - MCP Server 'quote-generator' initialized successfully
+2026-01-10 18:09:29,027 - __main__ - INFO - MCP stdio server script started
+2026-01-10 18:09:29,028 - __main__ - INFO - ============================================================
+2026-01-10 18:09:29,028 - __main__ - INFO - Starting MCP stdio server for Kavin Scientific
+2026-01-10 18:09:29,028 - __main__ - INFO - Template path: /Users/saravanan/chatkit-kavin-scientific/mcp/quote.xlsx
+2026-01-10 18:09:29,028 - __main__ - INFO - Output directory: /Users/saravanan/chatkit-kavin-scientific/mcp
+2026-01-10 18:09:29,028 - __main__ - INFO - RAG Service URL: http://localhost:8000
+2026-01-10 18:09:29,028 - __main__ - INFO - ============================================================
+2026-01-10 18:09:29,028 - __main__ - INFO - Initializing stdio server...
+2026-01-10 18:09:29,029 - __main__ - INFO - stdio_server initialized, starting server.run()...
+2026-01-10 18:09:29,033 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
+2026-01-10 18:09:29,033 - __main__ - INFO - list_tools() called - preparing tool definitions
+2026-01-10 18:09:29,033 - __main__ - INFO - Returning 10 tool(s): generate_quote_for_products, file_search, search_hyma, get_hyma_product_details, search_spectrochem, get_spectrochem_product_details, search_glosil, get_glosil_product_details, search_tci, get_tci_product_details
+2026-01-10 18:09:43,063 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-10 18:09:43,065 - __main__ - INFO - ============================================================
+2026-01-10 18:09:43,066 - __main__ - INFO - 🔧 MCP Tool Call: search_hyma
+2026-01-10 18:09:43,066 - __main__ - INFO - 📥 Arguments: {
+  "chemical_name": "formic acid"
+}
+2026-01-10 18:09:43,066 - __main__ - INFO - ============================================================
+2026-01-10 18:09:43,066 - __main__ - INFO - Searching Hyma Synthesis for chemical: 'formic acid'
+2026-01-10 18:09:43,107 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-10 18:09:43,107 - __main__ - INFO - ============================================================
+2026-01-10 18:09:43,108 - __main__ - INFO - 🔧 MCP Tool Call: search_spectrochem
+2026-01-10 18:09:43,108 - __main__ - INFO - 📥 Arguments: {
+  "chemical_name": "formic acid"
+}
+2026-01-10 18:09:43,108 - __main__ - INFO - ============================================================
+2026-01-10 18:09:43,108 - __main__ - INFO - Searching Spectrochem for chemical: 'formic acid'
+2026-01-10 18:09:43,113 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-10 18:09:43,114 - __main__ - INFO - ============================================================
+2026-01-10 18:09:43,114 - __main__ - INFO - 🔧 MCP Tool Call: search_glosil
+2026-01-10 18:09:43,114 - __main__ - INFO - 📥 Arguments: {
+  "search_term": "formic acid"
+}
+2026-01-10 18:09:43,114 - __main__ - INFO - ============================================================
+2026-01-10 18:09:43,114 - __main__ - INFO - Searching Glosil Scientific for: 'formic acid'
+2026-01-10 18:09:43,120 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-10 18:09:43,121 - __main__ - INFO - ============================================================
+2026-01-10 18:09:43,121 - __main__ - INFO - 🔧 MCP Tool Call: search_tci
+2026-01-10 18:09:43,121 - __main__ - INFO - 📥 Arguments: {
+  "search_term": "formic acid"
+}
+2026-01-10 18:09:43,121 - __main__ - INFO - ============================================================
+2026-01-10 18:09:43,121 - __main__ - INFO - Searching TCI Chemicals for: 'formic acid'
+2026-01-10 18:09:43,127 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-10 18:09:43,128 - __main__ - INFO - ============================================================
+2026-01-10 18:09:43,128 - __main__ - INFO - 🔧 MCP Tool Call: file_search
+2026-01-10 18:09:43,128 - __main__ - INFO - 📥 Arguments: {
+  "query": "formic acid"
+}
+2026-01-10 18:09:43,128 - __main__ - INFO - ============================================================
+2026-01-10 18:09:43,128 - __main__ - INFO - Searching for query: 'formic acid' in collection: 'documents' (limit: 10)
+2026-01-10 18:09:43,146 - httpx - INFO - HTTP Request: POST http://localhost:8000/api/rag/search?collection_name=documents&limit=10&text_only=true&llm_format=false&llm_provider=openai "HTTP/1.1 200 OK"
+2026-01-10 18:09:43,146 - __main__ - WARNING - No content found for query: 'formic acid'
+2026-01-10 18:09:43,677 - httpx - INFO - HTTP Request: POST https://hymasynthesis.com/webservices/api/Values/GetProductsBasedOnChemicalName "HTTP/1.1 200 OK"
+2026-01-10 18:09:43,677 - __main__ - INFO - Found 3 product(s) for formic acid
+2026-01-10 18:09:43,678 - __main__ - INFO - ✅ Tool 'search_hyma' completed successfully in 0.61s
+2026-01-10 18:09:43,678 - __main__ - INFO - ============================================================
+2026-01-10 18:09:43,959 - httpx - INFO - HTTP Request: GET https://spectrochem.in/?s=formic+acid "HTTP/1.1 200 OK"
+2026-01-10 18:09:43,973 - __main__ - INFO - Found 6 product(s) for formic acid
+2026-01-10 18:09:43,973 - __main__ - INFO - ✅ Tool 'search_spectrochem' completed successfully in 0.87s
+2026-01-10 18:09:43,974 - __main__ - INFO - ============================================================
+2026-01-10 18:09:46,058 - httpx - INFO - HTTP Request: POST https://www.glosilscientific.com/search.php "HTTP/1.1 200 OK"
+2026-01-10 18:09:46,115 - __main__ - INFO - No products found for search term: formic acid
+2026-01-10 18:09:46,473 - httpx - INFO - HTTP Request: GET https://www.tcichemicals.com/IN/en/search/?text=formic+acid "HTTP/1.1 200 OK"
+2026-01-10 18:09:46,556 - __main__ - INFO - Found 12 product(s) for formic acid
+2026-01-10 18:09:46,556 - __main__ - INFO - ✅ Tool 'search_tci' completed successfully in 3.44s
+2026-01-10 18:09:46,556 - __main__ - INFO - ============================================================
+2026-01-10 18:09:56,996 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-10 18:09:56,997 - __main__ - INFO - ============================================================
+2026-01-10 18:09:56,998 - __main__ - INFO - 🔧 MCP Tool Call: get_hyma_product_details
+2026-01-10 18:09:56,998 - __main__ - INFO - 📥 Arguments: {
+  "item_code": "ALF1072"
+}
+2026-01-10 18:09:56,998 - __main__ - INFO - ============================================================
+2026-01-10 18:09:56,998 - __main__ - INFO - Getting Hyma Synthesis product details for ItemCode: 'ALF1072'
+2026-01-10 18:09:57,235 - httpx - INFO - HTTP Request: GET https://hymasynthesis.com/webservices/api/Values/GetWebStockItemMstBasedOnId?ItemCode=ALF1072 "HTTP/1.1 200 OK"
+2026-01-10 18:09:57,291 - httpx - INFO - HTTP Request: GET https://hymasynthesis.com/webservices/api/Values/GetProductSpecificationOnCatalogNo?ItemCode=ALF1072 "HTTP/1.1 200 OK"
+2026-01-10 18:09:57,291 - __main__ - INFO - Successfully retrieved product details for ItemCode: ALF1072
+2026-01-10 18:09:57,291 - __main__ - INFO - ✅ Tool 'get_hyma_product_details' completed successfully in 0.29s
+2026-01-10 18:09:57,291 - __main__ - INFO - ============================================================
+2026-01-10 18:09:58,860 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-10 18:09:58,861 - __main__ - INFO - ============================================================
+2026-01-10 18:09:58,861 - __main__ - INFO - 🔧 MCP Tool Call: get_hyma_product_details
+2026-01-10 18:09:58,861 - __main__ - INFO - 📥 Arguments: {
+  "item_code": "ASF1362"
+}
+2026-01-10 18:09:58,861 - __main__ - INFO - ============================================================
+2026-01-10 18:09:58,861 - __main__ - INFO - Getting Hyma Synthesis product details for ItemCode: 'ASF1362'
+2026-01-10 18:09:59,139 - httpx - INFO - HTTP Request: GET https://hymasynthesis.com/webservices/api/Values/GetWebStockItemMstBasedOnId?ItemCode=ASF1362 "HTTP/1.1 200 OK"
+2026-01-10 18:09:59,241 - httpx - INFO - HTTP Request: GET https://hymasynthesis.com/webservices/api/Values/GetProductSpecificationOnCatalogNo?ItemCode=ASF1362 "HTTP/1.1 200 OK"
+2026-01-10 18:09:59,241 - __main__ - INFO - Successfully retrieved product details for ItemCode: ASF1362
+2026-01-10 18:09:59,242 - __main__ - INFO - ✅ Tool 'get_hyma_product_details' completed successfully in 0.38s
+2026-01-10 18:09:59,242 - __main__ - INFO - ============================================================
+2026-01-10 18:10:01,213 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-10 18:10:01,214 - __main__ - INFO - ============================================================
+2026-01-10 18:10:01,214 - __main__ - INFO - 🔧 MCP Tool Call: get_hyma_product_details
+2026-01-10 18:10:01,214 - __main__ - INFO - 📥 Arguments: {
+  "item_code": "ASF2569"
+}
+2026-01-10 18:10:01,214 - __main__ - INFO - ============================================================
+2026-01-10 18:10:01,214 - __main__ - INFO - Getting Hyma Synthesis product details for ItemCode: 'ASF2569'
+2026-01-10 18:10:01,442 - httpx - INFO - HTTP Request: GET https://hymasynthesis.com/webservices/api/Values/GetWebStockItemMstBasedOnId?ItemCode=ASF2569 "HTTP/1.1 200 OK"
+2026-01-10 18:10:01,501 - httpx - INFO - HTTP Request: GET https://hymasynthesis.com/webservices/api/Values/GetProductSpecificationOnCatalogNo?ItemCode=ASF2569 "HTTP/1.1 200 OK"
+2026-01-10 18:10:01,502 - __main__ - INFO - Successfully retrieved product details for ItemCode: ASF2569
+2026-01-10 18:10:01,502 - __main__ - INFO - ✅ Tool 'get_hyma_product_details' completed successfully in 0.29s
+2026-01-10 18:10:01,502 - __main__ - INFO - ============================================================
+2026-01-10 18:10:07,511 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-10 18:10:07,513 - __main__ - INFO - ============================================================
+2026-01-10 18:10:07,513 - __main__ - INFO - 🔧 MCP Tool Call: get_spectrochem_product_details
+2026-01-10 18:10:07,513 - __main__ - INFO - 📥 Arguments: {
+  "product_id": "0706165-1000ML",
+  "product_name": "FORMIC ACID for HPLC  [64-18-6]"
+}
+2026-01-10 18:10:07,513 - __main__ - INFO - ============================================================
+2026-01-10 18:10:07,513 - __main__ - INFO - Getting Spectrochem product details for Product ID: '0706165-1000ML', Name: 'FORMIC ACID for HPLC  [64-18-6]'
+2026-01-10 18:10:09,433 - httpx - INFO - HTTP Request: POST https://spectrochem.in/wp-admin/admin-ajax.php "HTTP/1.1 200 OK"
+2026-01-10 18:10:09,435 - __main__ - INFO - Successfully retrieved product details for Product ID: 0706165-1000ML
+2026-01-10 18:10:09,435 - __main__ - INFO - ✅ Tool 'get_spectrochem_product_details' completed successfully in 1.92s
+2026-01-10 18:10:09,435 - __main__ - INFO - ============================================================
+2026-01-10 18:10:13,116 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-10 18:10:13,117 - __main__ - INFO - ============================================================
+2026-01-10 18:10:13,117 - __main__ - INFO - 🔧 MCP Tool Call: get_spectrochem_product_details
+2026-01-10 18:10:13,117 - __main__ - INFO - 📥 Arguments: {
+  "product_id": "010653-500ML",
+  "product_name": "FORMIC ACID 98-100% puriss AR"
+}
+2026-01-10 18:10:13,117 - __main__ - INFO - ============================================================
+2026-01-10 18:10:13,117 - __main__ - INFO - Getting Spectrochem product details for Product ID: '010653-500ML', Name: 'FORMIC ACID 98-100% puriss AR'
+2026-01-10 18:10:14,857 - httpx - INFO - HTTP Request: POST https://spectrochem.in/wp-admin/admin-ajax.php "HTTP/1.1 200 OK"
+2026-01-10 18:10:14,859 - __main__ - INFO - Successfully retrieved product details for Product ID: 010653-500ML
+2026-01-10 18:10:14,859 - __main__ - INFO - ✅ Tool 'get_spectrochem_product_details' completed successfully in 1.74s
+2026-01-10 18:10:14,859 - __main__ - INFO - ============================================================
+2026-01-10 18:10:16,823 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-10 18:10:16,826 - __main__ - INFO - ============================================================
+2026-01-10 18:10:16,826 - __main__ - INFO - 🔧 MCP Tool Call: get_spectrochem_product_details
+2026-01-10 18:10:16,826 - __main__ - INFO - 📥 Arguments: {
+  "product_id": "010637-500ML",
+  "product_name": "FORMIC ACID 98-100% pure for synthesis"
+}
+2026-01-10 18:10:16,826 - __main__ - INFO - ============================================================
+2026-01-10 18:10:16,826 - __main__ - INFO - Getting Spectrochem product details for Product ID: '010637-500ML', Name: 'FORMIC ACID 98-100% pure for synthesis'
+2026-01-10 18:10:18,803 - httpx - INFO - HTTP Request: POST https://spectrochem.in/wp-admin/admin-ajax.php "HTTP/1.1 200 OK"
+2026-01-10 18:10:18,807 - __main__ - INFO - Successfully retrieved product details for Product ID: 010637-500ML
+2026-01-10 18:10:18,807 - __main__ - INFO - ✅ Tool 'get_spectrochem_product_details' completed successfully in 1.98s
+2026-01-10 18:10:18,807 - __main__ - INFO - ============================================================
+2026-01-10 18:10:20,843 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-10 18:10:20,844 - __main__ - INFO - ============================================================
+2026-01-10 18:10:20,844 - __main__ - INFO - 🔧 MCP Tool Call: get_tci_product_details
+2026-01-10 18:10:20,845 - __main__ - INFO - 📥 Arguments: {
+  "product_url": "/IN/en/p/F0654"
+}
+2026-01-10 18:10:20,845 - __main__ - INFO - ============================================================
+2026-01-10 18:10:20,845 - __main__ - INFO - Getting TCI Chemicals product details from URL: '/IN/en/p/F0654'
+2026-01-10 18:10:21,790 - httpx - INFO - HTTP Request: GET https://www.tcichemicals.com/IN/en/p/F0654 "HTTP/1.1 200 OK"
+2026-01-10 18:10:21,897 - __main__ - INFO - Successfully retrieved product details from URL: https://www.tcichemicals.com/IN/en/p/F0654
+2026-01-10 18:10:21,897 - __main__ - INFO - ✅ Tool 'get_tci_product_details' completed successfully in 1.05s
+2026-01-10 18:10:21,898 - __main__ - INFO - ============================================================
+2026-01-10 18:10:23,701 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-10 18:10:23,701 - __main__ - INFO - ============================================================
+2026-01-10 18:10:23,702 - __main__ - INFO - 🔧 MCP Tool Call: get_tci_product_details
+2026-01-10 18:10:23,702 - __main__ - INFO - 📥 Arguments: {
+  "product_url": "/IN/en/p/F0513"
+}
+2026-01-10 18:10:23,702 - __main__ - INFO - ============================================================
+2026-01-10 18:10:23,702 - __main__ - INFO - Getting TCI Chemicals product details from URL: '/IN/en/p/F0513'
+2026-01-10 18:10:24,539 - httpx - INFO - HTTP Request: GET https://www.tcichemicals.com/IN/en/p/F0513 "HTTP/1.1 200 OK"
+2026-01-10 18:10:24,598 - __main__ - INFO - Successfully retrieved product details from URL: https://www.tcichemicals.com/IN/en/p/F0513
+2026-01-10 18:10:24,598 - __main__ - INFO - ✅ Tool 'get_tci_product_details' completed successfully in 0.90s
+2026-01-10 18:10:24,598 - __main__ - INFO - ============================================================
+2026-01-10 18:11:08,086 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-10 18:11:08,092 - __main__ - INFO - ============================================================
+2026-01-10 18:11:08,092 - __main__ - INFO - 🔧 MCP Tool Call: generate_quote_for_products
+2026-01-10 18:11:08,093 - __main__ - INFO - 📥 Arguments: {
+  "products": [
+    {
+      "name": "Formic Acid, 98% - HYMA (ASF1362)",
+      "cas_number": "64-18-6",
+      "packing": "500 ml",
+      "price": 770,
+      "part": "ASF1362",
+      "hs_code": "29151100",
+      "tax": 18
+    },
+    {
+      "name": "Formic Acid, 98% - HYMA (ASF1362)",
+      "cas_number": "64-18-6",
+      "packing": "2.5 L",
+      "price": 3220,
+      "part": "ASF1362",
+      "hs_code": "29151100",
+      "tax": 18
+    },
+    {
+      "name": "Formic Acid, 85% - HYMA (ASF2569)",
+      "cas_number": "64-18-6",
+      "packing": "500 ml",
+      "price": 407,
+      "part": "ASF2569",
+      "hs_code": "29151100",
+      "tax": 18
+    },
+    {
+      "name": "Formic Acid for HPLC - SPECTROCHEM (0706165-1000ML) [MOCK PRICE]",
+      "cas_number": "64-18-6",
+      "packing": "1000 ml",
+      "price": 5200,
+      "part": "0706165-1000ML",
+      "hs_code": "29151100",
+      "tax": 18
+    },
+    {
+      "name": "Formic Acid 98-100% AR - SPECTROCHEM (010653-500ML) [MOCK PRICE]",
+      "cas_number": "64-18-6",
+      "packing": "500 ml",
+      "price": 850,
+      "part": "010653-500ML",
+      "hs_code": "29151100",
+      "tax": 18
+    },
+    {
+      "name": "Formic Acid [for LC-MS] - TCI (F0654)",
+      "cas_number": "64-18-6",
+      "packing": "25 ml",
+      "price": 4600,
+      "part": "F0654",
+      "hs_code": "29151100",
+      "tax": 18
+    }
+  ],
+  "file_name": "Quote_Formic_Acid_2026-01-10.xlsx"
+}
+2026-01-10 18:11:08,093 - __main__ - INFO - ============================================================
+2026-01-10 18:11:08,093 - __main__ - INFO - Generating quote for 6 products, filename: Quote_Formic_Acid_2026-01-10.xlsx
+2026-01-10 18:11:08,093 - __main__ - INFO - Using template: /Users/saravanan/chatkit-kavin-scientific/mcp/quote.xlsx
+2026-01-10 18:11:08,101 - __main__ - INFO - Generating quote using XMLQuoteGenerator...
+2026-01-10 18:11:08,103 - xml_quote_generator - INFO - Extracting template to: /var/folders/r0/n9nb15_10fx0spfb695mp3ym0000gn/T/tmpsrml32fw/extracted
+2026-01-10 18:11:08,110 - xml_quote_generator - INFO - Updating worksheet: /var/folders/r0/n9nb15_10fx0spfb695mp3ym0000gn/T/tmpsrml32fw/extracted/xl/worksheets/sheet1.xml
+2026-01-10 18:11:08,112 - xml_quote_generator - INFO - Inserting 6 products
+2026-01-10 18:11:08,112 - xml_quote_generator - INFO - Total G.Amt: $17755.46
+2026-01-10 18:11:08,113 - xml_quote_generator - INFO - Inserting total row at row 21
+2026-01-10 18:11:08,113 - xml_quote_generator - INFO - Moved content inserted (20 rows)
+2026-01-10 18:11:08,115 - xml_quote_generator - INFO - Worksheet updated successfully
+2026-01-10 18:11:08,115 - xml_quote_generator - INFO - Creating output file: /Users/saravanan/chatkit-kavin-scientific/mcp/Quote_Formic_Acid_2026-01-10.xlsx
+2026-01-10 18:11:08,122 - xml_quote_generator - INFO - Quote generated with FULL preservation: /Users/saravanan/chatkit-kavin-scientific/mcp/Quote_Formic_Acid_2026-01-10.xlsx
+2026-01-10 18:11:08,122 - __main__ - INFO - Quote generated successfully: /Users/saravanan/chatkit-kavin-scientific/mcp/Quote_Formic_Acid_2026-01-10.xlsx
+2026-01-10 18:11:08,122 - __main__ - INFO - Uploading file to DigitalOcean Spaces: Quote_Formic_Acid_2026-01-10.xlsx
+2026-01-10 18:11:11,641 - __main__ - INFO - Successfully uploaded file. Public URL: https://optimus.ams3.digitaloceanspaces.com/Quote_Formic_Acid_2026-01-10.xlsx
+2026-01-10 18:11:11,642 - __main__ - INFO - Deleted local file after successful upload: /Users/saravanan/chatkit-kavin-scientific/mcp/Quote_Formic_Acid_2026-01-10.xlsx
+2026-01-10 18:11:11,644 - __main__ - INFO - Quote generation completed successfully. Total amount: $17755.46
+2026-01-10 18:11:11,644 - __main__ - INFO - ✅ Tool 'generate_quote_for_products' completed successfully in 3.55s
+2026-01-10 18:11:11,644 - __main__ - INFO - ============================================================
+2026-01-10 18:13:36,178 - __main__ - INFO - MCP stdio server shutdown complete
+2026-01-10 18:13:36,750 - __main__ - INFO - Initializing MCP Server 'quote-generator'...
+2026-01-10 18:13:36,750 - __main__ - INFO - MCP Server 'quote-generator' initialized successfully
+2026-01-10 18:13:36,751 - __main__ - INFO - MCP stdio server script started
+2026-01-10 18:13:36,751 - __main__ - INFO - ============================================================
+2026-01-10 18:13:36,751 - __main__ - INFO - Starting MCP stdio server for Kavin Scientific
+2026-01-10 18:13:36,751 - __main__ - INFO - Template path: /Users/saravanan/chatkit-kavin-scientific/mcp/quote.xlsx
+2026-01-10 18:13:36,751 - __main__ - INFO - Output directory: /Users/saravanan/chatkit-kavin-scientific/mcp
+2026-01-10 18:13:36,751 - __main__ - INFO - RAG Service URL: http://localhost:8000
+2026-01-10 18:13:36,751 - __main__ - INFO - ============================================================
+2026-01-10 18:13:36,751 - __main__ - INFO - Initializing stdio server...
+2026-01-10 18:13:36,752 - __main__ - INFO - stdio_server initialized, starting server.run()...
+2026-01-10 18:13:36,756 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
+2026-01-10 18:13:36,757 - __main__ - INFO - list_tools() called - preparing tool definitions
+2026-01-10 18:13:36,757 - __main__ - INFO - Returning 10 tool(s): generate_quote_for_products, file_search, search_hyma, get_hyma_product_details, search_spectrochem, get_spectrochem_product_details, search_glosil, get_glosil_product_details, search_tci, get_tci_product_details
+2026-01-10 18:13:41,538 - __main__ - INFO - MCP stdio server shutdown complete
+2026-01-10 18:14:05,935 - __main__ - INFO - Initializing MCP Server 'quote-generator'...
+2026-01-10 18:14:05,935 - __main__ - INFO - MCP Server 'quote-generator' initialized successfully
+2026-01-10 18:14:05,935 - __main__ - INFO - MCP stdio server script started
+2026-01-10 18:14:05,935 - __main__ - INFO - ============================================================
+2026-01-10 18:14:05,935 - __main__ - INFO - Starting MCP stdio server for Kavin Scientific
+2026-01-10 18:14:05,935 - __main__ - INFO - Template path: /Users/saravanan/chatkit-kavin-scientific/mcp/quote.xlsx
+2026-01-10 18:14:05,935 - __main__ - INFO - Output directory: /Users/saravanan/chatkit-kavin-scientific/mcp
+2026-01-10 18:14:05,935 - __main__ - INFO - RAG Service URL: http://localhost:8000
+2026-01-10 18:14:05,935 - __main__ - INFO - ============================================================
+2026-01-10 18:14:05,935 - __main__ - INFO - Initializing stdio server...
+2026-01-10 18:14:05,937 - __main__ - INFO - stdio_server initialized, starting server.run()...
+2026-01-10 18:14:05,943 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
+2026-01-10 18:14:05,943 - __main__ - INFO - list_tools() called - preparing tool definitions
+2026-01-10 18:14:05,943 - __main__ - INFO - Returning 10 tool(s): generate_quote_for_products, file_search, search_hyma, get_hyma_product_details, search_spectrochem, get_spectrochem_product_details, search_glosil, get_glosil_product_details, search_tci, get_tci_product_details
+2026-01-10 18:14:25,501 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-10 18:14:25,503 - __main__ - INFO - ============================================================
+2026-01-10 18:14:25,504 - __main__ - INFO - 🔧 MCP Tool Call: search_hyma
+2026-01-10 18:14:25,504 - __main__ - INFO - 📥 Arguments: {
+  "chemical_name": "formic acid"
+}
+2026-01-10 18:14:25,504 - __main__ - INFO - ============================================================
+2026-01-10 18:14:25,504 - __main__ - INFO - Searching Hyma Synthesis for chemical: 'formic acid'
+2026-01-10 18:14:25,538 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-10 18:14:25,539 - __main__ - INFO - ============================================================
+2026-01-10 18:14:25,539 - __main__ - INFO - 🔧 MCP Tool Call: search_spectrochem
+2026-01-10 18:14:25,539 - __main__ - INFO - 📥 Arguments: {
+  "chemical_name": "formic acid"
+}
+2026-01-10 18:14:25,539 - __main__ - INFO - ============================================================
+2026-01-10 18:14:25,539 - __main__ - INFO - Searching Spectrochem for chemical: 'formic acid'
+2026-01-10 18:14:25,545 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-10 18:14:25,546 - __main__ - INFO - ============================================================
+2026-01-10 18:14:25,546 - __main__ - INFO - 🔧 MCP Tool Call: search_tci
+2026-01-10 18:14:25,546 - __main__ - INFO - 📥 Arguments: {
+  "search_term": "formic acid"
+}
+2026-01-10 18:14:25,546 - __main__ - INFO - ============================================================
+2026-01-10 18:14:25,546 - __main__ - INFO - Searching TCI Chemicals for: 'formic acid'
+2026-01-10 18:14:25,552 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-10 18:14:25,552 - __main__ - INFO - ============================================================
+2026-01-10 18:14:25,552 - __main__ - INFO - 🔧 MCP Tool Call: search_glosil
+2026-01-10 18:14:25,552 - __main__ - INFO - 📥 Arguments: {
+  "search_term": "formic acid"
+}
+2026-01-10 18:14:25,552 - __main__ - INFO - ============================================================
+2026-01-10 18:14:25,552 - __main__ - INFO - Searching Glosil Scientific for: 'formic acid'
+2026-01-10 18:14:25,557 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-10 18:14:25,558 - __main__ - INFO - ============================================================
+2026-01-10 18:14:25,558 - __main__ - INFO - 🔧 MCP Tool Call: file_search
+2026-01-10 18:14:25,558 - __main__ - INFO - 📥 Arguments: {
+  "query": "formic acid",
+  "limit": 10
+}
+2026-01-10 18:14:25,558 - __main__ - INFO - ============================================================
+2026-01-10 18:14:25,558 - __main__ - INFO - Searching for query: 'formic acid' in collection: 'documents' (limit: 10)
+2026-01-10 18:14:25,569 - httpx - INFO - HTTP Request: POST http://localhost:8000/api/rag/search?collection_name=documents&limit=10&text_only=true&llm_format=false&llm_provider=openai "HTTP/1.1 200 OK"
+2026-01-10 18:14:25,570 - __main__ - WARNING - No content found for query: 'formic acid'
+2026-01-10 18:14:25,740 - httpx - INFO - HTTP Request: POST https://hymasynthesis.com/webservices/api/Values/GetProductsBasedOnChemicalName "HTTP/1.1 200 OK"
+2026-01-10 18:14:25,742 - __main__ - INFO - Found 3 product(s) for formic acid
+2026-01-10 18:14:25,742 - __main__ - INFO - ✅ Tool 'search_hyma' completed successfully in 0.24s
+2026-01-10 18:14:25,742 - __main__ - INFO - ============================================================
+2026-01-10 18:14:25,859 - httpx - INFO - HTTP Request: GET https://spectrochem.in/?s=formic+acid "HTTP/1.1 200 OK"
+2026-01-10 18:14:25,870 - __main__ - INFO - Found 6 product(s) for formic acid
+2026-01-10 18:14:25,871 - __main__ - INFO - ✅ Tool 'search_spectrochem' completed successfully in 0.33s
+2026-01-10 18:14:25,871 - __main__ - INFO - ============================================================
+2026-01-10 18:14:26,464 - httpx - INFO - HTTP Request: GET https://www.tcichemicals.com/IN/en/search/?text=formic+acid "HTTP/1.1 200 OK"
+2026-01-10 18:14:26,592 - __main__ - INFO - Found 12 product(s) for formic acid
+2026-01-10 18:14:26,592 - __main__ - INFO - ✅ Tool 'search_tci' completed successfully in 1.05s
+2026-01-10 18:14:26,592 - __main__ - INFO - ============================================================
+2026-01-10 18:14:28,094 - httpx - INFO - HTTP Request: POST https://www.glosilscientific.com/search.php "HTTP/1.1 200 OK"
+2026-01-10 18:14:28,159 - __main__ - INFO - No products found for search term: formic acid
+2026-01-10 18:14:44,299 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-10 18:14:44,302 - __main__ - INFO - ============================================================
+2026-01-10 18:14:44,302 - __main__ - INFO - 🔧 MCP Tool Call: get_hyma_product_details
+2026-01-10 18:14:44,303 - __main__ - INFO - 📥 Arguments: {
+  "item_code": "ALF1072"
+}
+2026-01-10 18:14:44,303 - __main__ - INFO - ============================================================
+2026-01-10 18:14:44,303 - __main__ - INFO - Getting Hyma Synthesis product details for ItemCode: 'ALF1072'
+2026-01-10 18:14:44,315 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-10 18:14:44,315 - __main__ - INFO - ============================================================
+2026-01-10 18:14:44,315 - __main__ - INFO - 🔧 MCP Tool Call: get_hyma_product_details
+2026-01-10 18:14:44,316 - __main__ - INFO - 📥 Arguments: {
+  "item_code": "ASF1362"
+}
+2026-01-10 18:14:44,316 - __main__ - INFO - ============================================================
+2026-01-10 18:14:44,316 - __main__ - INFO - Getting Hyma Synthesis product details for ItemCode: 'ASF1362'
+2026-01-10 18:14:44,323 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-10 18:14:44,324 - __main__ - INFO - ============================================================
+2026-01-10 18:14:44,324 - __main__ - INFO - 🔧 MCP Tool Call: get_hyma_product_details
+2026-01-10 18:14:44,324 - __main__ - INFO - 📥 Arguments: {
+  "item_code": "ASF2569"
+}
+2026-01-10 18:14:44,324 - __main__ - INFO - ============================================================
+2026-01-10 18:14:44,324 - __main__ - INFO - Getting Hyma Synthesis product details for ItemCode: 'ASF2569'
+2026-01-10 18:14:44,331 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-10 18:14:44,332 - __main__ - INFO - ============================================================
+2026-01-10 18:14:44,332 - __main__ - INFO - 🔧 MCP Tool Call: get_spectrochem_product_details
+2026-01-10 18:14:44,332 - __main__ - INFO - 📥 Arguments: {
+  "product_id": "0706165-1000ML",
+  "product_name": "FORMIC ACID for HPLC  [64-18-6]"
+}
+2026-01-10 18:14:44,332 - __main__ - INFO - ============================================================
+2026-01-10 18:14:44,332 - __main__ - INFO - Getting Spectrochem product details for Product ID: '0706165-1000ML', Name: 'FORMIC ACID for HPLC  [64-18-6]'
+2026-01-10 18:14:44,339 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-10 18:14:44,339 - __main__ - INFO - ============================================================
+2026-01-10 18:14:44,339 - __main__ - INFO - 🔧 MCP Tool Call: get_spectrochem_product_details
+2026-01-10 18:14:44,339 - __main__ - INFO - 📥 Arguments: {
+  "product_id": "010653-500ML",
+  "product_name": "FORMIC ACID 98-100% puriss AR"
+}
+2026-01-10 18:14:44,339 - __main__ - INFO - ============================================================
+2026-01-10 18:14:44,339 - __main__ - INFO - Getting Spectrochem product details for Product ID: '010653-500ML', Name: 'FORMIC ACID 98-100% puriss AR'
+2026-01-10 18:14:44,345 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-10 18:14:44,346 - __main__ - INFO - ============================================================
+2026-01-10 18:14:44,346 - __main__ - INFO - 🔧 MCP Tool Call: get_spectrochem_product_details
+2026-01-10 18:14:44,346 - __main__ - INFO - 📥 Arguments: {
+  "product_id": "010637-500ML",
+  "product_name": "FORMIC ACID 98-100% pure for synthesis"
+}
+2026-01-10 18:14:44,346 - __main__ - INFO - ============================================================
+2026-01-10 18:14:44,346 - __main__ - INFO - Getting Spectrochem product details for Product ID: '010637-500ML', Name: 'FORMIC ACID 98-100% pure for synthesis'
+2026-01-10 18:14:44,352 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-10 18:14:44,352 - __main__ - INFO - ============================================================
+2026-01-10 18:14:44,352 - __main__ - INFO - 🔧 MCP Tool Call: get_tci_product_details
+2026-01-10 18:14:44,352 - __main__ - INFO - 📥 Arguments: {
+  "product_url": "/IN/en/p/F0654"
+}
+2026-01-10 18:14:44,352 - __main__ - INFO - ============================================================
+2026-01-10 18:14:44,352 - __main__ - INFO - Getting TCI Chemicals product details from URL: '/IN/en/p/F0654'
+2026-01-10 18:14:44,358 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-10 18:14:44,358 - __main__ - INFO - ============================================================
+2026-01-10 18:14:44,358 - __main__ - INFO - 🔧 MCP Tool Call: get_tci_product_details
+2026-01-10 18:14:44,358 - __main__ - INFO - 📥 Arguments: {
+  "product_url": "/IN/en/p/F0513"
+}
+2026-01-10 18:14:44,358 - __main__ - INFO - ============================================================
+2026-01-10 18:14:44,358 - __main__ - INFO - Getting TCI Chemicals product details from URL: '/IN/en/p/F0513'
+2026-01-10 18:14:44,530 - httpx - INFO - HTTP Request: GET https://hymasynthesis.com/webservices/api/Values/GetWebStockItemMstBasedOnId?ItemCode=ASF2569 "HTTP/1.1 200 OK"
+2026-01-10 18:14:44,548 - httpx - INFO - HTTP Request: GET https://hymasynthesis.com/webservices/api/Values/GetWebStockItemMstBasedOnId?ItemCode=ASF1362 "HTTP/1.1 200 OK"
+2026-01-10 18:14:44,550 - httpx - INFO - HTTP Request: GET https://hymasynthesis.com/webservices/api/Values/GetWebStockItemMstBasedOnId?ItemCode=ALF1072 "HTTP/1.1 200 OK"
+2026-01-10 18:14:44,587 - httpx - INFO - HTTP Request: GET https://hymasynthesis.com/webservices/api/Values/GetProductSpecificationOnCatalogNo?ItemCode=ASF2569 "HTTP/1.1 200 OK"
+2026-01-10 18:14:44,590 - __main__ - INFO - Successfully retrieved product details for ItemCode: ASF2569
+2026-01-10 18:14:44,590 - __main__ - INFO - ✅ Tool 'get_hyma_product_details' completed successfully in 0.27s
+2026-01-10 18:14:44,590 - __main__ - INFO - ============================================================
+2026-01-10 18:14:44,634 - httpx - INFO - HTTP Request: GET https://hymasynthesis.com/webservices/api/Values/GetProductSpecificationOnCatalogNo?ItemCode=ASF1362 "HTTP/1.1 200 OK"
+2026-01-10 18:14:44,634 - __main__ - INFO - Successfully retrieved product details for ItemCode: ASF1362
+2026-01-10 18:14:44,634 - __main__ - INFO - ✅ Tool 'get_hyma_product_details' completed successfully in 0.32s
+2026-01-10 18:14:44,634 - __main__ - INFO - ============================================================
+2026-01-10 18:14:44,635 - httpx - INFO - HTTP Request: GET https://hymasynthesis.com/webservices/api/Values/GetProductSpecificationOnCatalogNo?ItemCode=ALF1072 "HTTP/1.1 200 OK"
+2026-01-10 18:14:44,635 - __main__ - INFO - Successfully retrieved product details for ItemCode: ALF1072
+2026-01-10 18:14:44,635 - __main__ - INFO - ✅ Tool 'get_hyma_product_details' completed successfully in 0.33s
+2026-01-10 18:14:44,635 - __main__ - INFO - ============================================================
+2026-01-10 18:14:44,986 - httpx - INFO - HTTP Request: GET https://www.tcichemicals.com/IN/en/p/F0654 "HTTP/1.1 200 OK"
+2026-01-10 18:14:45,030 - __main__ - INFO - Successfully retrieved product details from URL: https://www.tcichemicals.com/IN/en/p/F0654
+2026-01-10 18:14:45,031 - __main__ - INFO - ✅ Tool 'get_tci_product_details' completed successfully in 0.68s
+2026-01-10 18:14:45,031 - __main__ - INFO - ============================================================
+2026-01-10 18:14:45,335 - httpx - INFO - HTTP Request: GET https://www.tcichemicals.com/IN/en/p/F0513 "HTTP/1.1 200 OK"
+2026-01-10 18:14:45,384 - __main__ - INFO - Successfully retrieved product details from URL: https://www.tcichemicals.com/IN/en/p/F0513
+2026-01-10 18:14:45,384 - __main__ - INFO - ✅ Tool 'get_tci_product_details' completed successfully in 1.03s
+2026-01-10 18:14:45,384 - __main__ - INFO - ============================================================
+2026-01-10 18:14:46,060 - httpx - INFO - HTTP Request: POST https://spectrochem.in/wp-admin/admin-ajax.php "HTTP/1.1 200 OK"
+2026-01-10 18:14:46,061 - __main__ - INFO - Successfully retrieved product details for Product ID: 010653-500ML
+2026-01-10 18:14:46,061 - __main__ - INFO - ✅ Tool 'get_spectrochem_product_details' completed successfully in 1.72s
+2026-01-10 18:14:46,061 - __main__ - INFO - ============================================================
+2026-01-10 18:14:46,061 - httpx - INFO - HTTP Request: POST https://spectrochem.in/wp-admin/admin-ajax.php "HTTP/1.1 200 OK"
+2026-01-10 18:14:46,062 - __main__ - INFO - Successfully retrieved product details for Product ID: 010637-500ML
+2026-01-10 18:14:46,062 - __main__ - INFO - ✅ Tool 'get_spectrochem_product_details' completed successfully in 1.72s
+2026-01-10 18:14:46,062 - __main__ - INFO - ============================================================
+2026-01-10 18:14:46,090 - httpx - INFO - HTTP Request: POST https://spectrochem.in/wp-admin/admin-ajax.php "HTTP/1.1 200 OK"
+2026-01-10 18:14:46,091 - __main__ - INFO - Successfully retrieved product details for Product ID: 0706165-1000ML
+2026-01-10 18:14:46,091 - __main__ - INFO - ✅ Tool 'get_spectrochem_product_details' completed successfully in 1.76s
+2026-01-10 18:14:46,091 - __main__ - INFO - ============================================================
+2026-01-10 18:15:30,176 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-10 18:15:30,181 - __main__ - INFO - ============================================================
+2026-01-10 18:15:30,181 - __main__ - INFO - 🔧 MCP Tool Call: generate_quote_for_products
+2026-01-10 18:15:30,181 - __main__ - INFO - 📥 Arguments: {
+  "products": [
+    {
+      "name": "Formic acid (HYMA)",
+      "cas_number": "64-18-6",
+      "packing": "500 ml",
+      "price": 770,
+      "part": "ALF1072",
+      "hs_code": "29151100",
+      "tax": 18
+    },
+    {
+      "name": "Formic acid, 98% (HYMA)",
+      "cas_number": "64-18-6",
+      "packing": "500 ml",
+      "price": 770,
+      "part": "ASF1362",
+      "hs_code": "29151100",
+      "tax": 18
+    },
+    {
+      "name": "Formic acid, 98% (HYMA)",
+      "cas_number": "64-18-6",
+      "packing": "2.5 L",
+      "price": 3220,
+      "part": "ASF1362",
+      "hs_code": "29151100",
+      "tax": 18
+    },
+    {
+      "name": "Formic acid, 85% (HYMA)",
+      "cas_number": "64-18-6",
+      "packing": "100 ml",
+      "price": 220,
+      "part": "ASF2569",
+      "hs_code": "29151100",
+      "tax": 18
+    },
+    {
+      "name": "Formic acid, 85% (HYMA)",
+      "cas_number": "64-18-6",
+      "packing": "500 ml",
+      "price": 407,
+      "part": "ASF2569",
+      "hs_code": "29151100",
+      "tax": 18
+    },
+    {
+      "name": "Formic acid, 85% (HYMA)",
+      "cas_number": "64-18-6",
+      "packing": "2.5 L",
+      "price": 1320,
+      "part": "ASF2569",
+      "hs_code": "29151100",
+      "tax": 18
+    },
+    {
+      "name": "Formic acid for HPLC (SPECTROCHEM)",
+      "cas_number": "64-18-6",
+      "packing": "1000 ml",
+      "price": 4500,
+      "part": "0706165-1000ML",
+      "hs_code": "29151100",
+      "tax": 18
+    },
+    {
+      "name": "Formic acid 98-100% AR (SPECTROCHEM)",
+      "cas_number": "64-18-6",
+      "packing": "500 ml",
+      "price": 820,
+      "part": "010653-500ML",
+      "hs_code": "29151100",
+      "tax": 18
+    },
+    {
+      "name": "Formic acid 98-100% pure for synthesis (SPECTROCHEM)",
+      "cas_number": "64-18-6",
+      "packing": "500 ml",
+      "price": 720,
+      "part": "010637-500ML",
+      "hs_code": "29151100",
+      "tax": 18
+    },
+    {
+      "name": "Formic Acid [for LC-MS] (TCI)",
+      "cas_number": "64-18-6",
+      "packing": "25 ml",
+      "price": 4600,
+      "part": "F0654",
+      "hs_code": "29151100",
+      "tax": 18
+    }
+  ],
+  "file_name": "Quote_Formic_Acid_2026-01-10.xlsx"
+}
+2026-01-10 18:15:30,181 - __main__ - INFO - ============================================================
+2026-01-10 18:15:30,181 - __main__ - INFO - Generating quote for 10 products, filename: Quote_Formic_Acid_2026-01-10.xlsx
+2026-01-10 18:15:30,181 - __main__ - INFO - Using template: /Users/saravanan/chatkit-kavin-scientific/mcp/quote.xlsx
+2026-01-10 18:15:30,183 - __main__ - INFO - Generating quote using XMLQuoteGenerator...
+2026-01-10 18:15:30,188 - xml_quote_generator - INFO - Extracting template to: /var/folders/r0/n9nb15_10fx0spfb695mp3ym0000gn/T/tmp203uoj5b/extracted
+2026-01-10 18:15:30,194 - xml_quote_generator - INFO - Updating worksheet: /var/folders/r0/n9nb15_10fx0spfb695mp3ym0000gn/T/tmp203uoj5b/extracted/xl/worksheets/sheet1.xml
+2026-01-10 18:15:30,199 - xml_quote_generator - INFO - Inserting 10 products
+2026-01-10 18:15:30,200 - xml_quote_generator - INFO - Total G.Amt: $20469.46
+2026-01-10 18:15:30,200 - xml_quote_generator - INFO - Inserting total row at row 25
+2026-01-10 18:15:30,200 - xml_quote_generator - INFO - Moved content inserted (20 rows)
+2026-01-10 18:15:30,202 - xml_quote_generator - INFO - Worksheet updated successfully
+2026-01-10 18:15:30,202 - xml_quote_generator - INFO - Creating output file: /Users/saravanan/chatkit-kavin-scientific/mcp/Quote_Formic_Acid_2026-01-10.xlsx
+2026-01-10 18:15:30,207 - xml_quote_generator - INFO - Quote generated with FULL preservation: /Users/saravanan/chatkit-kavin-scientific/mcp/Quote_Formic_Acid_2026-01-10.xlsx
+2026-01-10 18:15:30,208 - __main__ - INFO - Quote generated successfully: /Users/saravanan/chatkit-kavin-scientific/mcp/Quote_Formic_Acid_2026-01-10.xlsx
+2026-01-10 18:15:30,208 - __main__ - INFO - Uploading file to DigitalOcean Spaces: Quote_Formic_Acid_2026-01-10.xlsx
+2026-01-10 18:15:31,669 - __main__ - INFO - Successfully uploaded file. Public URL: https://optimus.ams3.digitaloceanspaces.com/Quote_Formic_Acid_2026-01-10.xlsx
+2026-01-10 18:15:31,669 - __main__ - INFO - Deleted local file after successful upload: /Users/saravanan/chatkit-kavin-scientific/mcp/Quote_Formic_Acid_2026-01-10.xlsx
+2026-01-10 18:15:31,670 - __main__ - INFO - Quote generation completed successfully. Total amount: $20469.46
+2026-01-10 18:15:31,670 - __main__ - INFO - ✅ Tool 'generate_quote_for_products' completed successfully in 1.49s
+2026-01-10 18:15:31,670 - __main__ - INFO - ============================================================
+2026-01-10 18:15:44,583 - __main__ - INFO - MCP stdio server shutdown complete
+2026-01-10 18:15:45,126 - __main__ - INFO - Initializing MCP Server 'quote-generator'...
+2026-01-10 18:15:45,126 - __main__ - INFO - MCP Server 'quote-generator' initialized successfully
+2026-01-10 18:15:45,126 - __main__ - INFO - MCP stdio server script started
+2026-01-10 18:15:45,126 - __main__ - INFO - ============================================================
+2026-01-10 18:15:45,126 - __main__ - INFO - Starting MCP stdio server for Kavin Scientific
+2026-01-10 18:15:45,126 - __main__ - INFO - Template path: /Users/saravanan/chatkit-kavin-scientific/mcp/quote.xlsx
+2026-01-10 18:15:45,126 - __main__ - INFO - Output directory: /Users/saravanan/chatkit-kavin-scientific/mcp
+2026-01-10 18:15:45,126 - __main__ - INFO - RAG Service URL: http://localhost:8000
+2026-01-10 18:15:45,126 - __main__ - INFO - ============================================================
+2026-01-10 18:15:45,126 - __main__ - INFO - Initializing stdio server...
+2026-01-10 18:15:45,128 - __main__ - INFO - stdio_server initialized, starting server.run()...
+2026-01-10 18:15:45,131 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
+2026-01-10 18:15:45,131 - __main__ - INFO - list_tools() called - preparing tool definitions
+2026-01-10 18:15:45,131 - __main__ - INFO - Returning 10 tool(s): generate_quote_for_products, file_search, search_hyma, get_hyma_product_details, search_spectrochem, get_spectrochem_product_details, search_glosil, get_glosil_product_details, search_tci, get_tci_product_details
+2026-01-10 18:15:50,380 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-10 18:15:50,382 - __main__ - INFO - ============================================================
+2026-01-10 18:15:50,382 - __main__ - INFO - 🔧 MCP Tool Call: search_tci
+2026-01-10 18:15:50,382 - __main__ - INFO - 📥 Arguments: {
+  "search_term": "formic acid"
+}
+2026-01-10 18:15:50,382 - __main__ - INFO - ============================================================
+2026-01-10 18:15:50,383 - __main__ - INFO - Searching TCI Chemicals for: 'formic acid'
+2026-01-10 18:15:51,371 - httpx - INFO - HTTP Request: GET https://www.tcichemicals.com/IN/en/search/?text=formic+acid "HTTP/1.1 200 OK"
+2026-01-10 18:15:51,462 - __main__ - INFO - Found 12 product(s) for formic acid
+2026-01-10 18:15:51,462 - __main__ - INFO - ✅ Tool 'search_tci' completed successfully in 1.08s
+2026-01-10 18:15:51,462 - __main__ - INFO - ============================================================
+2026-01-10 18:15:56,040 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-10 18:15:56,041 - __main__ - INFO - ============================================================
+2026-01-10 18:15:56,041 - __main__ - INFO - 🔧 MCP Tool Call: get_tci_product_details
+2026-01-10 18:15:56,041 - __main__ - INFO - 📥 Arguments: {
+  "product_url": "/IN/en/p/F0654"
+}
+2026-01-10 18:15:56,041 - __main__ - INFO - ============================================================
+2026-01-10 18:15:56,041 - __main__ - INFO - Getting TCI Chemicals product details from URL: '/IN/en/p/F0654'
+2026-01-10 18:15:56,054 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-10 18:15:56,055 - __main__ - INFO - ============================================================
+2026-01-10 18:15:56,055 - __main__ - INFO - 🔧 MCP Tool Call: get_tci_product_details
+2026-01-10 18:15:56,055 - __main__ - INFO - 📥 Arguments: {
+  "product_url": "/IN/en/p/F0513"
+}
+2026-01-10 18:15:56,055 - __main__ - INFO - ============================================================
+2026-01-10 18:15:56,055 - __main__ - INFO - Getting TCI Chemicals product details from URL: '/IN/en/p/F0513'
+2026-01-10 18:15:56,675 - httpx - INFO - HTTP Request: GET https://www.tcichemicals.com/IN/en/p/F0513 "HTTP/1.1 200 OK"
+2026-01-10 18:15:56,678 - httpx - INFO - HTTP Request: GET https://www.tcichemicals.com/IN/en/p/F0654 "HTTP/1.1 200 OK"
+2026-01-10 18:15:56,746 - __main__ - INFO - Successfully retrieved product details from URL: https://www.tcichemicals.com/IN/en/p/F0654
+2026-01-10 18:15:56,746 - __main__ - INFO - ✅ Tool 'get_tci_product_details' completed successfully in 0.71s
+2026-01-10 18:15:56,746 - __main__ - INFO - ============================================================
+2026-01-10 18:15:56,781 - __main__ - INFO - Successfully retrieved product details from URL: https://www.tcichemicals.com/IN/en/p/F0513
+2026-01-10 18:15:56,781 - __main__ - INFO - ✅ Tool 'get_tci_product_details' completed successfully in 0.73s
+2026-01-10 18:15:56,781 - __main__ - INFO - ============================================================
+2026-01-10 18:16:30,622 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-01-10 18:16:30,625 - __main__ - INFO - ============================================================
+2026-01-10 18:16:30,625 - __main__ - INFO - 🔧 MCP Tool Call: generate_quote_for_products
+2026-01-10 18:16:30,625 - __main__ - INFO - 📥 Arguments: {
+  "products": [
+    {
+      "name": "Formic Acid [for LC-MS] (TCI)",
+      "cas_number": "64-18-6",
+      "packing": "25 mL",
+      "price": 4600,
+      "part": "F0654",
+      "hs_code": "29151100",
+      "tax": 18,
+      "quantity": 1
+    },
+    {
+      "name": "Formic Acid (TCI)",
+      "cas_number": "64-18-6",
+      "packing": "500 mL",
+      "price": 950,
+      "part": "F0513",
+      "hs_code": "29151100",
+      "tax": 18,
+      "quantity": 1
+    }
+  ],
+  "file_name": "Quote_TCI_Formic_Acid_2026-01-10.xlsx"
+}
+2026-01-10 18:16:30,625 - __main__ - INFO - ============================================================
+2026-01-10 18:16:30,625 - __main__ - INFO - Generating quote for 2 products, filename: Quote_TCI_Formic_Acid_2026-01-10.xlsx
+2026-01-10 18:16:30,625 - __main__ - INFO - Using template: /Users/saravanan/chatkit-kavin-scientific/mcp/quote.xlsx
+2026-01-10 18:16:30,626 - __main__ - INFO - Generating quote using XMLQuoteGenerator...
+2026-01-10 18:16:30,627 - xml_quote_generator - INFO - Extracting template to: /var/folders/r0/n9nb15_10fx0spfb695mp3ym0000gn/T/tmpty4riaxs/extracted
+2026-01-10 18:16:30,633 - xml_quote_generator - INFO - Updating worksheet: /var/folders/r0/n9nb15_10fx0spfb695mp3ym0000gn/T/tmpty4riaxs/extracted/xl/worksheets/sheet1.xml
+2026-01-10 18:16:30,634 - xml_quote_generator - INFO - Inserting 2 products
+2026-01-10 18:16:30,634 - xml_quote_generator - INFO - Total G.Amt: $6549.00
+2026-01-10 18:16:30,634 - xml_quote_generator - INFO - Inserting total row at row 17
+2026-01-10 18:16:30,634 - xml_quote_generator - INFO - Moved content inserted (20 rows)
+2026-01-10 18:16:30,636 - xml_quote_generator - INFO - Worksheet updated successfully
+2026-01-10 18:16:30,636 - xml_quote_generator - INFO - Creating output file: /Users/saravanan/chatkit-kavin-scientific/mcp/Quote_TCI_Formic_Acid_2026-01-10.xlsx
+2026-01-10 18:16:30,641 - xml_quote_generator - INFO - Quote generated with FULL preservation: /Users/saravanan/chatkit-kavin-scientific/mcp/Quote_TCI_Formic_Acid_2026-01-10.xlsx
+2026-01-10 18:16:30,641 - __main__ - INFO - Quote generated successfully: /Users/saravanan/chatkit-kavin-scientific/mcp/Quote_TCI_Formic_Acid_2026-01-10.xlsx
+2026-01-10 18:16:30,641 - __main__ - INFO - Uploading file to DigitalOcean Spaces: Quote_TCI_Formic_Acid_2026-01-10.xlsx
+2026-01-10 18:16:31,950 - __main__ - INFO - Successfully uploaded file. Public URL: https://optimus.ams3.digitaloceanspaces.com/Quote_TCI_Formic_Acid_2026-01-10.xlsx
+2026-01-10 18:16:31,951 - __main__ - INFO - Deleted local file after successful upload: /Users/saravanan/chatkit-kavin-scientific/mcp/Quote_TCI_Formic_Acid_2026-01-10.xlsx
+2026-01-10 18:16:31,953 - __main__ - INFO - Quote generation completed successfully. Total amount: $6549.00
+2026-01-10 18:16:31,953 - __main__ - INFO - ✅ Tool 'generate_quote_for_products' completed successfully in 1.33s
+2026-01-10 18:16:31,953 - __main__ - INFO - ============================================================
+2026-01-10 18:24:14,946 - __main__ - INFO - MCP stdio server shutdown complete

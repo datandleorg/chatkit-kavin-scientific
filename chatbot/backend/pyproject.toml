@@ -1,0 +1,24 @@
+[project]
+name = "chemical-procurement-backend"
+version = "0.1.0"
+description = "FastAPI backend with LangGraph agent for chemical procurement"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.6",
+    "uvicorn[standard]>=0.34.0",
+    "python-multipart>=0.0.19",
+    "anthropic>=0.42.0",
+    "langgraph>=0.2.60",
+    "langchain-anthropic>=0.3.0",
+    "langchain-core>=0.3.0",
+    "httpx>=0.27.0",
+    "python-dotenv>=1.0.1",
+    "pydantic>=2.10.4",
+    "aiofiles>=24.1.0",
+    "PyPDF2>=3.0.1",
+    "beautifulsoup4>=4.12.0",
+    "motor>=3.6.0",
+]
+
+[project.scripts]
+serve = "main:app"
