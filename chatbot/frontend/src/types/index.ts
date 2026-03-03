@@ -22,7 +22,10 @@ export interface QuoteRow {
 export type ContentBlock =
   | { type: 'text'; text: string }
   | { type: 'tool'; toolCall: ToolCall }
-  | { type: 'table'; rows: QuoteRow[] };
+  | { type: 'table'; rows: QuoteRow[] }
+  | { type: 'thinking'; text: string }
+  | { type: 'summarizing'; done: boolean; summary?: string }
+  | { type: 'extracting'; done: boolean; files?: string[] };
 
 export interface Message {
   id: string;
@@ -30,6 +33,7 @@ export interface Message {
   content: string;
   timestamp: Date;
   blocks?: ContentBlock[];
+  attachments?: string[];
 }
 
 export interface Conversation {

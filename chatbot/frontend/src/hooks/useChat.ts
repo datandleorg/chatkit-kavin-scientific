@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import type { Message, ContentBlock, QuoteRow } from '../types';
 import type { ToolStartEvent, ToolEndEvent, TableDataEvent } from '../lib/api';
-import { streamChat, uploadFiles as apiUploadFiles, fetchMessages as apiFetchMessages } from '../lib/api';
+import { streamChat, fetchMessages as apiFetchMessages } from '../lib/api';
 
 export function useChat() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -48,7 +48,7 @@ export function useChat() {
   }, []);
 
   const sendMessage = useCallback(
-    async (text: string) => {
+    async (text: string, files?: File[]) => {
       if (isStreaming) return;
       abortRef.current = false;
 
@@ -57,6 +57,7 @@ export function useChat() {
         role: 'user',
         content: text,
         timestamp: new Date(),
+        attachments: files?.map((f) => f.name),
       };
 
       const assistantMsg: Message = {
@@ -75,9 +76,64 @@ export function useChat() {
         content: m.content,
       }));
 
-      await streamChat(text, history, sessionId, conversationId, {
+      await streamChat(text, history, sessionId, conversationId, files, {
         onConversationId: (id) => {
           setConversationId(id);
+        },
+        onExtracting: (active) => {
+          if (abortRef.current) return;
+          updateLastAssistant((msg) => {
+            const blocks = [...(msg.blocks ?? [])];
+            if (active) {
+              blocks.push({ type: 'extracting', done: false });
+            } else {
+              const idx = blocks.findIndex((b) => b.type === 'extracting');
+              if (idx >= 0) {
+                blocks[idx] = { ...blocks[idx], done: true } as typeof blocks[number];
+              }
+            }
+            return { ...msg, blocks };
+          });
+        },
+        onFileExtracted: (event) => {
+          if (abortRef.current) return;
+          updateLastAssistant((msg) => {
+            const blocks = [...(msg.blocks ?? [])];
+            const idx = blocks.findIndex((b) => b.type === 'extracting');
+            if (idx >= 0) {
+              const blk = blocks[idx] as { type: 'extracting'; done: boolean; files?: string[] };
+              blocks[idx] = { ...blk, files: [...(blk.files ?? []), event.filename] };
+            }
+            return { ...msg, blocks };
+          });
+        },
+        onThinking: (text) => {
+          if (abortRef.current) return;
+          updateLastAssistant((msg) => {
+            const blocks = [...(msg.blocks ?? [])];
+            const last = blocks[blocks.length - 1];
+            if (last && last.type === 'thinking') {
+              blocks[blocks.length - 1] = { type: 'thinking', text: last.text + text };
+            } else {
+              blocks.push({ type: 'thinking', text });
+            }
+            return { ...msg, blocks };
+          });
+        },
+        onSummarizing: (active, summary) => {
+          if (abortRef.current) return;
+          updateLastAssistant((msg) => {
+            const blocks = [...(msg.blocks ?? [])];
+            if (active) {
+              blocks.push({ type: 'summarizing', done: false });
+            } else {
+              const idx = blocks.findIndex((b) => b.type === 'summarizing');
+              if (idx >= 0) {
+                blocks[idx] = { type: 'summarizing', done: true, summary };
+              }
+            }
+            return { ...msg, blocks };
+          });
         },
         onToken: (token) => {
           if (abortRef.current) return;
@@ -158,35 +214,10 @@ export function useChat() {
     [isStreaming, messages, sessionId, conversationId, updateLastAssistant],
   );
 
-  const attachFiles = useCallback(
-    async (files: FileList) => {
-      try {
-        const result = await apiUploadFiles(files);
-        setSessionId(result.session_id);
+  const stopStreaming = useCallback(() => {
+    abortRef.current = true;
+    setIsStreaming(false);
+  }, []);
 
-        const content = `Extracted chemicals from your files:\n${result.chemical_list.map((c) => `- ${c}`).join('\n')}`;
-        const systemMsg: Message = {
-          id: crypto.randomUUID(),
-          role: 'assistant',
-          content,
-          timestamp: new Date(),
-          blocks: [{ type: 'text', text: content }],
-        };
-        setMessages((prev) => [...prev, systemMsg]);
-      } catch (err) {
-        const content = `File upload failed: ${err instanceof Error ? err.message : 'Unknown error'}`;
-        const errorMsg: Message = {
-          id: crypto.randomUUID(),
-          role: 'assistant',
-          content,
-          timestamp: new Date(),
-          blocks: [{ type: 'text', text: content }],
-        };
-        setMessages((prev) => [...prev, errorMsg]);
-      }
-    },
-    [],
-  );
-
-  return { messages, isStreaming, sessionId, conversationId, sendMessage, attachFiles, newChat, loadConversation };
+  return { messages, isStreaming, sessionId, conversationId, sendMessage, stopStreaming, newChat, loadConversation };
 }

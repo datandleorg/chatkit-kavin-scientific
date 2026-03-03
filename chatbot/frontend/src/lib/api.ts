@@ -19,8 +19,17 @@ export interface TableDataEvent {
   run_id: string;
 }
 
+export interface FileExtractedEvent {
+  filename: string;
+  preview: string;
+}
+
 export interface StreamCallbacks {
   onToken?: (token: string) => void;
+  onThinking?: (text: string) => void;
+  onSummarizing?: (active: boolean, summary?: string) => void;
+  onExtracting?: (active: boolean) => void;
+  onFileExtracted?: (event: FileExtractedEvent) => void;
   onToolStart?: (event: ToolStartEvent) => void;
   onToolEnd?: (event: ToolEndEvent) => void;
   onTableData?: (event: TableDataEvent) => void;
@@ -31,17 +40,26 @@ export interface StreamCallbacks {
 
 export async function streamChat(
   message: string,
-  history: { role: string; content: string }[],
+  _history: { role: string; content: string }[],
   sessionId?: string,
   conversationId?: string | null,
+  files?: File[],
   callbacks?: StreamCallbacks,
 ) {
-  const { onToken, onToolStart, onToolEnd, onTableData, onConversationId, onDone, onError } = callbacks ?? {};
+  void _history;
+  const { onToken, onThinking, onSummarizing, onExtracting, onFileExtracted, onToolStart, onToolEnd, onTableData, onConversationId, onDone, onError } = callbacks ?? {};
   try {
+    const formData = new FormData();
+    formData.append('message', message);
+    if (sessionId) formData.append('session_id', sessionId);
+    if (conversationId) formData.append('conversation_id', conversationId);
+    if (files) {
+      files.forEach((f) => formData.append('files', f));
+    }
+
     const res = await fetch(`${BASE_URL}/chat/stream`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, history, session_id: sessionId, conversation_id: conversationId || undefined }),
+      body: formData,
     });
 
     if (!res.ok) {
@@ -77,6 +95,11 @@ export async function streamChat(
           try {
             const parsed = JSON.parse(data);
             if (parsed.conversation_id) onConversationId?.(parsed.conversation_id);
+            if (parsed.extracting !== undefined) onExtracting?.(parsed.extracting);
+            if (parsed.file_extracted) onFileExtracted?.(parsed.file_extracted);
+            if (parsed.thinking) onThinking?.(parsed.thinking);
+            if (parsed.summarizing !== undefined) onSummarizing?.(parsed.summarizing);
+            if (parsed.summary) onSummarizing?.(false, parsed.summary);
             if (parsed.token) onToken?.(parsed.token);
             if (parsed.tool_start) onToolStart?.(parsed.tool_start);
             if (parsed.tool_end) onToolEnd?.(parsed.tool_end);

@@ -6,7 +6,7 @@ import ConversationSidebar from './ConversationSidebar';
 import { useChat } from '../hooks/useChat';
 
 export default function ChatLayout() {
-  const { messages, isStreaming, conversationId, sendMessage, attachFiles, newChat, loadConversation } = useChat();
+  const { messages, isStreaming, conversationId, sendMessage, stopStreaming, newChat, loadConversation } = useChat();
   const [historyOpen, setHistoryOpen] = useState(false);
 
   const handleSuggestionSelect = (text: string) => {
@@ -34,7 +34,7 @@ export default function ChatLayout() {
       />
       <ChatInput
         onSend={sendMessage}
-        onAttach={attachFiles}
+        onStop={stopStreaming}
         disabled={isStreaming}
       />
     </div>

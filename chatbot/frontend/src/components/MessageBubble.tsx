@@ -1,4 +1,4 @@
-import { User, Bot, Search, CheckCircle2, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react';
+import { User, Bot, Search, CheckCircle2, ChevronDown, ChevronRight, AlertCircle, Brain, Loader2, FileText, Paperclip, ScanText, Image } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Message, ToolCall, ContentBlock, QuoteRow } from '../types';
@@ -102,6 +102,99 @@ function ToolCallChip({ toolCall }: { toolCall: ToolCall }) {
   );
 }
 
+function ThinkingBlock({ text, isLast, isStreaming }: { text: string; isLast: boolean; isStreaming: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+  const isActive = isLast && isStreaming;
+
+  return (
+    <div className="flex flex-col">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
+          transition-all duration-150 cursor-pointer
+          ${isActive
+            ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
+            : 'bg-[var(--color-bg-tertiary)] text-[var(--color-fg-muted)] border border-[var(--color-border)] hover:bg-[var(--color-bg-tertiary)]/80'
+          }`}
+      >
+        <Brain size={13} />
+        <span>{isActive ? 'Thinking...' : 'Thought process'}</span>
+        {isActive && <Loader2 size={12} className="animate-spin" />}
+        {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+      </button>
+      {expanded && (
+        <div className="mt-1.5 ml-1 px-3 py-2 rounded-lg text-xs italic
+                        bg-[var(--color-bg-tertiary)]/50 border border-[var(--color-border)]
+                        text-[var(--color-fg-muted)] max-h-60 overflow-y-auto animate-fade-in whitespace-pre-wrap">
+          {text}
+          {isActive && (
+            <span className="inline-block w-1.5 h-3 ml-0.5 bg-purple-400 rounded-sm animate-pulse align-middle" />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SummarizingBlock({ done, summary }: { done: boolean; summary?: string }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="flex flex-col">
+      <button
+        onClick={() => summary && setExpanded(!expanded)}
+        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
+          transition-all duration-150
+          ${!done
+            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+            : 'bg-[var(--color-bg-tertiary)] text-[var(--color-fg-muted)] border border-[var(--color-border)] hover:bg-[var(--color-bg-tertiary)]/80 cursor-pointer'
+          }`}
+      >
+        <FileText size={13} />
+        <span>{!done ? 'Summarizing conversation...' : 'Conversation summarized'}</span>
+        {!done && <Loader2 size={12} className="animate-spin" />}
+        {done && summary && (expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />)}
+      </button>
+      {expanded && summary && (
+        <div className="mt-1.5 ml-1 px-3 py-2 rounded-lg text-xs
+                        bg-[var(--color-bg-tertiary)]/50 border border-[var(--color-border)]
+                        text-[var(--color-fg-muted)] max-h-40 overflow-y-auto animate-fade-in whitespace-pre-wrap">
+          {summary}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ExtractingBlock({ done, files }: { done: boolean; files?: string[] }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <div
+        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
+          ${!done
+            ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
+            : 'bg-[var(--color-bg-tertiary)] text-[var(--color-fg-muted)] border border-[var(--color-border)]'
+          }`}
+      >
+        <ScanText size={13} />
+        <span>{!done ? 'Extracting text from files...' : 'Files processed'}</span>
+        {!done && <Loader2 size={12} className="animate-spin" />}
+      </div>
+      {files && files.length > 0 && (
+        <div className="flex flex-wrap gap-1 ml-1">
+          {files.map((name, i) => (
+            <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px]
+                                     bg-[var(--color-bg-tertiary)] text-[var(--color-fg-muted)] border border-[var(--color-border)]">
+              <CheckCircle2 size={10} className="text-emerald-400" />
+              {name}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TextBlock({ text, isLast, isStreaming }: { text: string; isLast: boolean; isStreaming: boolean }) {
   return (
     <div className="px-4 py-2.5 rounded-2xl text-sm leading-relaxed min-w-0
@@ -135,9 +228,26 @@ export default function MessageBubble({ message, isStreaming }: MessageBubblePro
   const blocks = message.blocks;
 
   if (isUser) {
+    const attachments = message.attachments;
     return (
       <div className="flex gap-3 animate-fade-in justify-end">
-        <div className="flex flex-col gap-2 max-w-[80%] min-w-0">
+        <div className="flex flex-col gap-2 max-w-[80%] min-w-0 items-end">
+          {attachments && attachments.length > 0 && (
+            <div className="flex flex-wrap gap-1 justify-end">
+              {attachments.map((name, i) => {
+                const ext = name.split('.').pop()?.toLowerCase() ?? '';
+                const isImg = ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext);
+                return (
+                  <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs
+                                           bg-[var(--color-accent)]/10 text-[var(--color-accent)]
+                                           border border-[var(--color-accent)]/20">
+                    {isImg ? <Image size={12} /> : <Paperclip size={12} />}
+                    <span className="max-w-[150px] truncate">{name}</span>
+                  </span>
+                );
+              })}
+            </div>
+          )}
           <div className="px-4 py-2.5 rounded-2xl text-sm leading-relaxed min-w-0
                           bg-[var(--color-user-bubble)] text-[var(--color-user-bubble-fg)] rounded-br-md">
             <span className="whitespace-pre-wrap">{message.content}</span>
@@ -168,12 +278,18 @@ export default function MessageBubble({ message, isStreaming }: MessageBubblePro
     );
   }
 
-  const groups: { kind: 'text' | 'tools' | 'table'; items: ContentBlock[] }[] = [];
+  const groups: { kind: 'text' | 'tools' | 'table' | 'thinking' | 'summarizing' | 'extracting'; items: ContentBlock[] }[] = [];
   for (const block of blocks) {
     if (block.type === 'text') {
       groups.push({ kind: 'text', items: [block] });
     } else if (block.type === 'table') {
       groups.push({ kind: 'table', items: [block] });
+    } else if (block.type === 'thinking') {
+      groups.push({ kind: 'thinking', items: [block] });
+    } else if (block.type === 'summarizing') {
+      groups.push({ kind: 'summarizing', items: [block] });
+    } else if (block.type === 'extracting') {
+      groups.push({ kind: 'extracting', items: [block] });
     } else {
       const lastGroup = groups[groups.length - 1];
       if (lastGroup && lastGroup.kind === 'tools') {
@@ -193,6 +309,38 @@ export default function MessageBubble({ message, isStreaming }: MessageBubblePro
       </div>
       <div className="flex flex-col gap-2 max-w-[90%] min-w-0">
         {groups.map((group, gi) => {
+          if (group.kind === 'thinking') {
+            const thinkBlock = group.items[0] as { type: 'thinking'; text: string };
+            const isLast = gi === groups.length - 1;
+            return (
+              <ThinkingBlock
+                key={`think-${gi}`}
+                text={thinkBlock.text}
+                isLast={isLast}
+                isStreaming={!!isStreaming}
+              />
+            );
+          }
+          if (group.kind === 'summarizing') {
+            const sumBlock = group.items[0] as { type: 'summarizing'; done: boolean; summary?: string };
+            return (
+              <SummarizingBlock
+                key={`sum-${gi}`}
+                done={sumBlock.done}
+                summary={sumBlock.summary}
+              />
+            );
+          }
+          if (group.kind === 'extracting') {
+            const extBlock = group.items[0] as { type: 'extracting'; done: boolean; files?: string[] };
+            return (
+              <ExtractingBlock
+                key={`ext-${gi}`}
+                done={extBlock.done}
+                files={extBlock.files}
+              />
+            );
+          }
           if (group.kind === 'text') {
             const textBlock = group.items[0] as { type: 'text'; text: string };
             const isLast = gi === groups.length - 1;

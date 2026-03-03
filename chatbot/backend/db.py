@@ -65,6 +65,13 @@ async def update_conversation_title(conv_id: str, title: str):
     )
 
 
+async def update_conversation_summary(conv_id: str, summary: str, msg_count: int):
+    await conversations_col.update_one(
+        {"_id": conv_id},
+        {"$set": {"summary": summary, "summary_msg_count": msg_count}},
+    )
+
+
 async def touch_conversation(conv_id: str):
     await conversations_col.update_one(
         {"_id": conv_id},
