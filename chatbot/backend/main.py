@@ -28,7 +28,12 @@ from agent.graph import SYSTEM_PROMPT
 from utils.xml_quote_generator import XMLQuoteGenerator
 import db as db_service
 
-logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)-5s [%(name)s] %(message)s",
+    datefmt="%H:%M:%S",
+)
+logger = logging.getLogger("chatbot")
 
 try:
     import tiktoken
@@ -58,10 +63,13 @@ def _extract_pdf_text(file_bytes: bytes) -> str:
         text = page.extract_text()
         if text:
             pages.append(text.strip())
-    return "\n\n".join(pages)
+    result = "\n\n".join(pages)
+    logger.info("PDF extracted: %d pages, %d chars", len(reader.pages), len(result))
+    return result
 
 
 async def _extract_image_text(file_bytes: bytes, media_type: str) -> str:
+    logger.info("Image extraction: model=%s, media_type=%s, size=%dKB", VISION_MODEL, media_type, len(file_bytes) // 1024)
     client = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
     b64 = base64.standard_b64encode(file_bytes).decode("utf-8")
     response = await client.messages.create(
@@ -78,34 +86,42 @@ async def _extract_image_text(file_bytes: bytes, media_type: str) -> str:
             ],
         }],
     )
-    return response.content[0].text
+    text = response.content[0].text
+    logger.info("Image extraction done: %d chars extracted", len(text))
+    return text
 
 
 async def _process_uploaded_files(files: list[UploadFile]) -> list[dict]:
     """Extract text from uploaded files. Returns list of {filename, text} dicts."""
+    logger.info("Processing %d uploaded file(s)", len(files))
     results = []
     for f in files:
         ext = Path(f.filename or "file").suffix.lower()
         file_bytes = await f.read()
+        size_kb = len(file_bytes) // 1024
 
         if len(file_bytes) > MAX_FILE_SIZE_MB * 1024 * 1024:
+            logger.warning("File too large: %s (%dKB)", f.filename, size_kb)
             results.append({"filename": f.filename, "text": f"[File too large: {f.filename}]"})
             continue
 
         try:
             if ext in PDF_EXTENSIONS:
+                logger.info("Extracting PDF: %s (%dKB)", f.filename, size_kb)
                 text = _extract_pdf_text(file_bytes)
                 results.append({"filename": f.filename, "text": text})
             elif ext in IMAGE_EXTENSIONS:
+                logger.info("Extracting image: %s (%dKB)", f.filename, size_kb)
                 mime_map = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
                             ".webp": "image/webp", ".gif": "image/gif"}
                 media_type = mime_map.get(ext, "image/png")
                 text = await _extract_image_text(file_bytes, media_type)
                 results.append({"filename": f.filename, "text": text})
             else:
+                logger.warning("Unsupported file type: %s (%s)", f.filename, ext)
                 results.append({"filename": f.filename, "text": f"[Unsupported file type: {ext}]"})
         except Exception as e:
-            logger.warning(f"Failed to extract text from {f.filename}: {e}")
+            logger.error("Extraction failed for %s: %s", f.filename, e)
             results.append({"filename": f.filename, "text": f"[Extraction failed: {e}]"})
 
     return results
@@ -264,6 +280,7 @@ def _compress_assistant_content(content: str) -> str:
 
 async def _summarize_with_llm(msgs_to_summarize: list[dict]) -> str:
     """Use a fast LLM to produce an abstractive summary of older messages."""
+    logger.info("Summarization: %d messages → model=%s", len(msgs_to_summarize), SUMMARIZATION_MODEL)
     client = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
 
     formatted = []
@@ -273,6 +290,8 @@ async def _summarize_with_llm(msgs_to_summarize: list[dict]) -> str:
         formatted.append(f"[{role}]: {content}")
 
     conversation_text = "\n".join(formatted[-40:])
+    input_tokens = _count_tokens(conversation_text)
+    logger.info("Summarization input: %d chars, ~%d tokens", len(conversation_text), input_tokens)
 
     response = await client.messages.create(
         model=SUMMARIZATION_MODEL,
@@ -287,7 +306,9 @@ async def _summarize_with_llm(msgs_to_summarize: list[dict]) -> str:
             ),
         }],
     )
-    return response.content[0].text
+    summary = response.content[0].text
+    logger.info("Summarization output: %d chars", len(summary))
+    return summary
 
 
 def _build_context(
@@ -348,10 +369,15 @@ async def chat_stream(
 
     conv_id = conversation_id or ""
     sid = session_id or ""
+    file_names = [f.filename for f in files if f.filename]
+    logger.info("── CHAT STREAM START ── conv=%s, msg=%r, files=%s",
+                conv_id[:8] if conv_id else "new", message[:80], file_names or "none")
+
     if not conv_id:
         title = message[:80].strip() or "New conversation"
         conv = await db_service.create_conversation(title)
         conv_id = conv["_id"]
+        logger.info("Created new conversation: %s", conv_id[:8])
 
     await db_service.add_message(conv_id, "user", message)
 
@@ -371,15 +397,23 @@ async def chat_stream(
     needs_summarization = total_tokens > TOKEN_THRESHOLD and len(db_msgs) > RECENT_WINDOW
     cached_summary: str | None = None
 
+    logger.info("Context: %d messages, %d tokens (threshold=%d, window=%d) → summarize=%s",
+                len(db_msgs), total_tokens, TOKEN_THRESHOLD, RECENT_WINDOW, needs_summarization)
+
     if needs_summarization:
         conv_doc = await db_service.get_conversation(conv_id)
         if conv_doc and conv_doc.get("summary"):
             cached_count = conv_doc.get("summary_msg_count", 0)
             if cached_count >= len(db_msgs) - RECENT_WINDOW:
                 cached_summary = conv_doc["summary"]
+                logger.info("Using cached summary (covers %d msgs)", cached_count)
+            else:
+                logger.info("Cached summary stale (covers %d, need %d), will re-summarize",
+                            cached_count, len(db_msgs) - RECENT_WINDOW)
 
     effective_message = message
     messages = _build_context(db_msgs, effective_message, context, cached_summary)
+    logger.info("Built LLM context: %d messages to model", len(messages))
 
     all_tokens: list[str] = []
     pending_text: list[str] = []
@@ -390,12 +424,15 @@ async def chat_stream(
             saved_blocks.append({"type": "text", "text": "".join(pending_text)})
             pending_text.clear()
 
+    tool_call_count = 0
+
     async def generate():
-        nonlocal messages, effective_message
+        nonlocal messages, effective_message, tool_call_count
         try:
             yield f"data: {json.dumps({'conversation_id': conv_id})}\n\n"
 
             if uploaded_files:
+                logger.info("Starting file extraction for %d file(s)", len(uploaded_files))
                 yield f"data: {json.dumps({'extracting': True})}\n\n"
                 extractions = await _process_uploaded_files(uploaded_files)
                 extracted_parts = []
@@ -411,10 +448,12 @@ async def chat_stream(
                         f"{file_context}"
                     )
                     messages = _build_context(db_msgs, effective_message, context, cached_summary)
+                    logger.info("File context injected: %d chars from %d file(s)", len(file_context), len(extracted_parts))
 
                 yield f"data: {json.dumps({'extracting': False})}\n\n"
 
             if needs_summarization and cached_summary is None:
+                logger.info("Starting LLM summarization of %d older messages", len(db_msgs) - RECENT_WINDOW)
                 yield f"data: {json.dumps({'summarizing': True})}\n\n"
                 try:
                     old_msgs = db_msgs[:-RECENT_WINDOW]
@@ -423,10 +462,13 @@ async def chat_stream(
                         conv_id, summary_text, len(old_msgs),
                     )
                     messages = _build_context(db_msgs, effective_message, context, summary_text)
+                    logger.info("Summarization complete: %d chars, cached for %d msgs", len(summary_text), len(old_msgs))
                     yield f"data: {json.dumps({'summary': summary_text})}\n\n"
                 except Exception as e:
-                    logger.warning(f"LLM summarization failed, proceeding without: {e}")
+                    logger.error("LLM summarization failed: %s", e)
                 yield f"data: {json.dumps({'summarizing': False})}\n\n"
+
+            logger.info("Starting agent loop (recursion_limit=200)")
 
             async for event in chat_graph.astream_events(
                 {"messages": messages, "session_id": sid, "context": context},
@@ -456,6 +498,7 @@ async def chat_stream(
 
                 elif kind == "on_tool_start":
                     flush_text()
+                    tool_call_count += 1
                     tool_name = event.get("name", "tool")
                     run_id = event.get("run_id", "")
                     tool_input = event.get("data", {}).get("input", {})
@@ -466,6 +509,7 @@ async def chat_stream(
                         or tool_input.get("product_id")
                         or tool_input.get("product_url", "")
                     )
+                    logger.info("  TOOL #%d START  %-35s  args=%s", tool_call_count, tool_name, search_param or tool_input)
                     saved_blocks.append({
                         "type": "tool",
                         "toolCall": {"id": run_id, "name": tool_name, "input": search_param, "status": "calling"},
@@ -477,6 +521,9 @@ async def chat_stream(
                     run_id = event.get("run_id", "")
                     tool_output = event.get("data", {}).get("output")
                     output_str = str(tool_output) if tool_output else ""
+                    has_error = any(kw in output_str.lower() for kw in ("error", "failed", "timeout"))
+                    status_label = "FAIL" if has_error else "OK"
+                    logger.info("  TOOL    END    %-35s  status=%s  output_len=%d", tool_name, status_label, len(output_str))
 
                     if tool_name == "prepare_quote_table":
                         try:
@@ -486,8 +533,10 @@ async def chat_stream(
                             rows = json.loads(content)
                             saved_blocks[:] = [b for b in saved_blocks if not (b.get("type") == "tool" and b.get("toolCall", {}).get("name") == "prepare_quote_table")]
                             saved_blocks.append({"type": "table", "rows": rows})
+                            logger.info("  Quote table generated: %d rows", len(rows))
                             yield f"data: {json.dumps({'table_data': {'rows': rows, 'run_id': run_id}})}\n\n"
                         except (json.JSONDecodeError, TypeError):
+                            logger.warning("  Quote table JSON parse failed")
                             for b in saved_blocks:
                                 if b.get("type") == "tool" and b.get("toolCall", {}).get("id") == run_id:
                                     b["toolCall"]["status"] = "done"
@@ -506,8 +555,13 @@ async def chat_stream(
             assistant_content = "".join(all_tokens)
             await db_service.add_message(conv_id, "assistant", assistant_content, saved_blocks or None)
 
+            response_tokens = _count_tokens(assistant_content)
+            logger.info("── CHAT STREAM DONE ── conv=%s, tool_calls=%d, response_tokens=%d, blocks=%d",
+                        conv_id[:8], tool_call_count, response_tokens, len(saved_blocks))
+
             yield "data: [DONE]\n\n"
         except Exception as e:
+            logger.error("── CHAT STREAM ERROR ── conv=%s: %s", conv_id[:8], e, exc_info=True)
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
     return StreamingResponse(generate(), media_type="text/event-stream")

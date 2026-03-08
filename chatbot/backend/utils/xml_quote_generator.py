@@ -202,20 +202,20 @@ class XMLQuoteGenerator:
         self._add_cell(row, 'E', row_num, brand, 's')
         self._add_cell(row, 'F', row_num, unit, 's')
         self._add_cell(row, 'G', row_num, rate, 'n')
-        self._add_cell(row, 'H', row_num, discount_percent / 100, 'n')
+        self._add_cell(row, 'H', row_num, discount_percent, 'n')
 
         self._add_cell(row, 'I', row_num, discounted_rate, 'n',
-                       formula=f'G{row_num}*(1-H{row_num})')
+                       formula=f'G{row_num}*(1-H{row_num}/100)')
 
         self._add_cell(row, 'J', row_num, qty, 'n')
 
         self._add_cell(row, 'K', row_num, amount, 'n',
                        formula=f'I{row_num}*J{row_num}')
 
-        self._add_cell(row, 'L', row_num, tax_percent / 100, 'n')
+        self._add_cell(row, 'L', row_num, tax_percent, 'n')
 
         self._add_cell(row, 'M', row_num, tax_amount, 'n',
-                       formula=f'K{row_num}*L{row_num}')
+                       formula=f'K{row_num}*L{row_num}/100')
 
         self._add_cell(row, 'N', row_num, grand_total, 'n',
                        formula=f'K{row_num}+M{row_num}')
@@ -223,11 +223,15 @@ class XMLQuoteGenerator:
         return row
 
     def _add_cell(self, row, col_letter: str, row_num: int, value, cell_type: str = 's', formula: str = None):
-        """Add a cell to a row element."""
+        """Add a cell to a row element. When formula is provided, it is written as an <f> element."""
         cell = ET.SubElement(row, f'{{{self.NS["main"]}}}c', r=f"{col_letter}{row_num}")
 
-        if cell_type == 'n':
-            cell.set('t', 'n')
+        if formula:
+            f_elem = ET.SubElement(cell, f'{{{self.NS["main"]}}}f')
+            f_elem.text = formula
+            v = ET.SubElement(cell, f'{{{self.NS["main"]}}}v')
+            v.text = str(value) if value is not None else '0'
+        elif cell_type == 'n':
             v = ET.SubElement(cell, f'{{{self.NS["main"]}}}v')
             v.text = str(value) if value is not None else '0'
         else:
@@ -268,12 +272,26 @@ class XMLQuoteGenerator:
 
         self._insert_row_in_order(sheet_data, total_row, row_num)
 
+    @staticmethod
+    def _shift_formula_refs(formula: str, row_offset: int) -> str:
+        """Shift row numbers in a formula by the given offset (e.g. A24 -> A20)."""
+        import re
+
+        def _replace(m: 're.Match') -> str:
+            col = m.group(1)
+            old_row = int(m.group(2))
+            return f"{col}{old_row + row_offset}"
+
+        return re.sub(r'([A-Z]{1,3})(\d+)', _replace, formula)
+
     def _insert_moved_content(self, sheet_data, start_row: int, rows_data: list):
-        """Insert moved content rows starting at the given row."""
+        """Insert moved content rows starting at the given row, updating formula refs."""
         self.logger.debug("Inserting moved content starting at row %s", start_row)
+        ns_f = f'{{{self.NS["main"]}}}f'
 
         current_row = start_row
         for original_row_num, row_element in rows_data:
+            row_offset = current_row - original_row_num
             new_row = ET.Element(row_element.tag)
 
             new_row.set('r', str(current_row))
@@ -291,7 +309,10 @@ class XMLQuoteGenerator:
                         new_cell.set(attr_name, attr_value)
 
                 for child in cell:
-                    new_cell.append(child)
+                    child_copy = copy.deepcopy(child)
+                    if child_copy.tag == ns_f and child_copy.text and row_offset != 0:
+                        child_copy.text = self._shift_formula_refs(child_copy.text, row_offset)
+                    new_cell.append(child_copy)
 
                 new_row.append(new_cell)
 
