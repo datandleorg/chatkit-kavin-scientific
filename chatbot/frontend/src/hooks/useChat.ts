@@ -1,7 +1,9 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type { Message, ContentBlock, QuoteRow } from '../types';
 import type { ToolStartEvent, ToolEndEvent, TableDataEvent } from '../lib/api';
 import { streamChat, fetchMessages as apiFetchMessages } from '../lib/api';
+
+export const CONVERSATION_ID_PARAM = 'c';
 
 export function useChat() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -9,6 +11,29 @@ export function useChat() {
   const [sessionId, setSessionId] = useState<string | undefined>();
   const [conversationId, setConversationId] = useState<string | null>(null);
   const abortRef = useRef(false);
+  const didSyncUrlRef = useRef(false);
+
+  // Keep URL in sync with current conversation for sharing (skip clearing on first mount so shared links work)
+  useEffect(() => {
+    if (conversationId) {
+      didSyncUrlRef.current = true;
+      const params = new URLSearchParams(window.location.search);
+      params.set(CONVERSATION_ID_PARAM, conversationId);
+      const search = params.toString();
+      const url = `${window.location.pathname}?${search}`;
+      if (window.location.pathname + window.location.search !== url) {
+        window.history.replaceState(null, '', url);
+      }
+    } else if (didSyncUrlRef.current) {
+      const params = new URLSearchParams(window.location.search);
+      params.delete(CONVERSATION_ID_PARAM);
+      const search = params.toString();
+      const url = `${window.location.pathname}${search ? `?${search}` : ''}`;
+      if (window.location.pathname + window.location.search !== url) {
+        window.history.replaceState(null, '', url);
+      }
+    }
+  }, [conversationId]);
 
   const updateLastAssistant = useCallback(
     (updater: (msg: Message) => Message) => {
@@ -48,7 +73,7 @@ export function useChat() {
   }, []);
 
   const sendMessage = useCallback(
-    async (text: string, files?: File[]) => {
+    async (text: string, files?: File[], model?: string | null) => {
       if (isStreaming) return;
       abortRef.current = false;
 
@@ -209,7 +234,7 @@ export function useChat() {
           }));
           setIsStreaming(false);
         },
-      });
+      }, model ?? undefined);
     },
     [isStreaming, messages, sessionId, conversationId, updateLastAssistant],
   );

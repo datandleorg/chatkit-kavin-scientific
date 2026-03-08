@@ -7,9 +7,10 @@ interface ChatMessagesProps {
   messages: Message[];
   isStreaming: boolean;
   onSuggestionSelect: (text: string) => void;
+  conversationId?: string | null;
 }
 
-export default function ChatMessages({ messages, isStreaming, onSuggestionSelect }: ChatMessagesProps) {
+export default function ChatMessages({ messages, isStreaming, onSuggestionSelect, conversationId }: ChatMessagesProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -32,6 +33,7 @@ export default function ChatMessages({ messages, isStreaming, onSuggestionSelect
             key={msg.id}
             message={msg}
             isStreaming={isStreaming && i === messages.length - 1 && msg.role === 'assistant'}
+            conversationId={conversationId}
           />
         ))}
         <div ref={bottomRef} />

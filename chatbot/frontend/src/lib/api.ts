@@ -45,6 +45,7 @@ export async function streamChat(
   conversationId?: string | null,
   files?: File[],
   callbacks?: StreamCallbacks,
+  model?: string | null,
 ) {
   void _history;
   const { onToken, onThinking, onSummarizing, onExtracting, onFileExtracted, onToolStart, onToolEnd, onTableData, onConversationId, onDone, onError } = callbacks ?? {};
@@ -53,6 +54,7 @@ export async function streamChat(
     formData.append('message', message);
     if (sessionId) formData.append('session_id', sessionId);
     if (conversationId) formData.append('conversation_id', conversationId);
+    if (model) formData.append('model', model);
     if (files) {
       files.forEach((f) => formData.append('files', f));
     }
@@ -189,16 +191,74 @@ export async function deleteConversation(conversationId: string): Promise<void> 
   if (!res.ok) throw new Error(`Delete conversation failed: ${res.status}`);
 }
 
+export interface UsageTotals {
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
+  cache_tokens: number;
+}
+
+export interface UsageByDay {
+  date: string;
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
+  cache_tokens: number;
+  message_count: number;
+}
+
+export interface UsageByToolCall {
+  tool_name: string;
+  success_count: number;
+  failure_count: number;
+}
+
+export interface UsageResponse {
+  totals: UsageTotals;
+  by_day: UsageByDay[];
+  by_tool_calls: UsageByToolCall[];
+  cost?: number;
+}
+
+export interface SavedQuote {
+  id: string;
+  conversation_id: string;
+  file_name: string;
+  rows_count: number;
+  message_prompt?: string | null;
+  created_at: string;
+}
+
+export async function fetchUsage(): Promise<UsageResponse> {
+  const res = await fetch(`${BASE_URL}/usage`);
+  if (!res.ok) throw new Error(`Fetch usage failed: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchSavedQuotes(limit: number = 50): Promise<SavedQuote[]> {
+  const res = await fetch(`${BASE_URL}/quotes?limit=${limit}`);
+  if (!res.ok) throw new Error(`Fetch quotes failed: ${res.status}`);
+  return res.json();
+}
+
+export async function downloadQuote(quoteId: string): Promise<Blob> {
+  const res = await fetch(`${BASE_URL}/quotes/${quoteId}/download`);
+  if (!res.ok) throw new Error(`Download quote failed: ${res.status}`);
+  return res.blob();
+}
+
 export async function exportQuoteXlsx(
   rows: { name: string; catalogNo: string; hsn: string; brand: string; unit: string; rate: number; discount: number; qty: number; gstPercent: number }[],
   fileName: string = 'quote',
+  conversationId?: string | null,
 ): Promise<Blob> {
   const res = await fetch(`${BASE_URL}/export-quote`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ rows, file_name: fileName }),
+    body: JSON.stringify({ rows, file_name: fileName, conversation_id: conversationId ?? undefined }),
   });
 
   if (!res.ok) throw new Error(`Export quote failed: ${res.status}`);
   return res.blob();
 }
+

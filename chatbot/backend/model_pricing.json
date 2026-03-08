@@ -1,0 +1,101 @@
+{
+  "description": "Anthropic model pricing in USD per million tokens (MTok). Columns: input, output, cache_read, cache_write, extended_thinking.",
+  "premium_per_token": 0.00002,
+  "model_id_to_key": {
+    "claude-sonnet-4-20250514": "Claude Sonnet 4.5",
+    "claude-opus-4-20250514": "Claude Opus 4.5",
+    "claude-3-5-sonnet-20241022": "Claude Sonnet 4",
+    "claude-3-5-haiku-20241022": "Claude Haiku 4.5",
+    "claude-3-opus-20240229": "Claude Opus 4",
+    "claude-3-sonnet-20240229": "Claude Sonnet 4",
+    "claude-3-haiku-20240307": "Claude Haiku 3.5",
+    "claude-3-5-sonnet-20240620": "Claude Sonnet 4",
+    "claude-3-5-haiku-20240620": "Claude Haiku 4.5"
+  },
+  "models": {
+    "Claude Opus 4.6": {
+      "input_usd_per_mtok": 5,
+      "output_usd_per_mtok": 6.25,
+      "cache_read_usd_per_mtok": 10,
+      "cache_write_usd_per_mtok": 0.50,
+      "extended_thinking_usd_per_mtok": 25
+    },
+    "Claude Opus 4.5": {
+      "input_usd_per_mtok": 5,
+      "output_usd_per_mtok": 6.25,
+      "cache_read_usd_per_mtok": 10,
+      "cache_write_usd_per_mtok": 0.50,
+      "extended_thinking_usd_per_mtok": 25
+    },
+    "Claude Opus 4.1": {
+      "input_usd_per_mtok": 15,
+      "output_usd_per_mtok": 18.75,
+      "cache_read_usd_per_mtok": 30,
+      "cache_write_usd_per_mtok": 1.50,
+      "extended_thinking_usd_per_mtok": 75
+    },
+    "Claude Opus 4": {
+      "input_usd_per_mtok": 15,
+      "output_usd_per_mtok": 18.75,
+      "cache_read_usd_per_mtok": 30,
+      "cache_write_usd_per_mtok": 1.50,
+      "extended_thinking_usd_per_mtok": 75
+    },
+    "Claude Sonnet 4.6": {
+      "input_usd_per_mtok": 3,
+      "output_usd_per_mtok": 3.75,
+      "cache_read_usd_per_mtok": 6,
+      "cache_write_usd_per_mtok": 0.30,
+      "extended_thinking_usd_per_mtok": 15
+    },
+    "Claude Sonnet 4.5": {
+      "input_usd_per_mtok": 3,
+      "output_usd_per_mtok": 3.75,
+      "cache_read_usd_per_mtok": 6,
+      "cache_write_usd_per_mtok": 0.30,
+      "extended_thinking_usd_per_mtok": 15
+    },
+    "Claude Sonnet 4": {
+      "input_usd_per_mtok": 3,
+      "output_usd_per_mtok": 3.75,
+      "cache_read_usd_per_mtok": 6,
+      "cache_write_usd_per_mtok": 0.30,
+      "extended_thinking_usd_per_mtok": 15
+    },
+    "Claude Sonnet 3.7 (deprecated)": {
+      "input_usd_per_mtok": 3,
+      "output_usd_per_mtok": 3.75,
+      "cache_read_usd_per_mtok": 6,
+      "cache_write_usd_per_mtok": 0.30,
+      "extended_thinking_usd_per_mtok": 15
+    },
+    "Claude Haiku 4.5": {
+      "input_usd_per_mtok": 1,
+      "output_usd_per_mtok": 1.25,
+      "cache_read_usd_per_mtok": 2,
+      "cache_write_usd_per_mtok": 0.10,
+      "extended_thinking_usd_per_mtok": 5
+    },
+    "Claude Haiku 3.5": {
+      "input_usd_per_mtok": 0.80,
+      "output_usd_per_mtok": 1,
+      "cache_read_usd_per_mtok": 1.6,
+      "cache_write_usd_per_mtok": 0.08,
+      "extended_thinking_usd_per_mtok": 4
+    },
+    "Claude Opus 3 (deprecated)": {
+      "input_usd_per_mtok": 15,
+      "output_usd_per_mtok": 18.75,
+      "cache_read_usd_per_mtok": 30,
+      "cache_write_usd_per_mtok": 1.50,
+      "extended_thinking_usd_per_mtok": 75
+    },
+    "Claude Haiku 3": {
+      "input_usd_per_mtok": 0.25,
+      "output_usd_per_mtok": 0.30,
+      "cache_read_usd_per_mtok": 0.50,
+      "cache_write_usd_per_mtok": 0.03,
+      "extended_thinking_usd_per_mtok": 1.25
+    }
+  }
+}

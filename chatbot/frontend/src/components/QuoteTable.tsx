@@ -4,6 +4,7 @@ import type { QuoteRow } from '../types';
 
 interface QuoteTableProps {
   initialRows: QuoteRow[];
+  conversationId?: string | null;
 }
 
 function computeRow(r: QuoteRow) {
@@ -78,7 +79,7 @@ function ResizeHandle({ onResize }: { onResize: (delta: number) => void }) {
 const inputClass =
   'w-full bg-transparent border border-transparent hover:border-[var(--color-border)] focus:border-[var(--color-accent)] rounded px-1 py-1 text-xs text-[var(--color-fg)] outline-none transition-colors';
 
-export default function QuoteTable({ initialRows }: QuoteTableProps) {
+export default function QuoteTable({ initialRows, conversationId }: QuoteTableProps) {
   const [rows, setRows] = useState<QuoteRow[]>(initialRows);
   const [colWidths, setColWidths] = useState(() => COL_DEFS.map((c) => c.initW));
 
@@ -127,6 +128,8 @@ export default function QuoteTable({ initialRows }: QuoteTableProps) {
           qty: r.qty,
           gstPercent: r.gstPercent,
         })),
+        'quote',
+        conversationId,
       );
 
       const url = URL.createObjectURL(blob);

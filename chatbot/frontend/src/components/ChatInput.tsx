@@ -3,7 +3,7 @@ import { Plus, ArrowUp, X, FileText, Image, Loader2, Square, Upload } from 'luci
 import ModelSelector from './ModelSelector';
 
 interface ChatInputProps {
-  onSend: (text: string, files?: File[]) => void;
+  onSend: (text: string, files?: File[], model?: string) => void;
   onStop?: () => void;
   disabled?: boolean;
 }
@@ -28,7 +28,7 @@ function fileIcon(name: string) {
 
 export default function ChatInput({ onSend, onStop, disabled }: ChatInputProps) {
   const [text, setText] = useState('');
-  const [model, setModel] = useState('claude-sonnet');
+  const [model, setModel] = useState('claude-sonnet-4-20250514');
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const dragCounter = useRef(0);
@@ -45,7 +45,7 @@ export default function ChatInput({ onSend, onStop, disabled }: ChatInputProps) 
   const handleSend = () => {
     if (!canSend || disabled) return;
     const trimmed = text.trim() || (attachedFiles.length > 0 ? 'Process the attached files and search for the products across all vendors.' : '');
-    onSend(trimmed, attachedFiles.length > 0 ? attachedFiles : undefined);
+    onSend(trimmed, attachedFiles.length > 0 ? attachedFiles : undefined, model);
     setText('');
     setAttachedFiles([]);
     if (textareaRef.current) textareaRef.current.style.height = 'auto';

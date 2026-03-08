@@ -3,10 +3,11 @@ from typing_extensions import TypedDict
 from langgraph.graph.message import add_messages
 
 
-class ChatState(TypedDict):
+class ChatState(TypedDict, total=False):
     messages: Annotated[list, add_messages]
     session_id: str
     context: str
+    model_id: str
 
 
 class WorkflowState(TypedDict, total=False):

@@ -1,13 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ChatHeader from './ChatHeader';
 import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
 import ConversationSidebar from './ConversationSidebar';
-import { useChat } from '../hooks/useChat';
+import { useChat, CONVERSATION_ID_PARAM } from '../hooks/useChat';
 
 export default function ChatLayout() {
   const { messages, isStreaming, conversationId, sendMessage, stopStreaming, newChat, loadConversation } = useChat();
   const [historyOpen, setHistoryOpen] = useState(false);
+
+  // Open conversation from URL on load (for shared links)
+  useEffect(() => {
+    const c = new URLSearchParams(window.location.search).get(CONVERSATION_ID_PARAM);
+    if (c) loadConversation(c);
+  }, [loadConversation]);
 
   const handleSuggestionSelect = (text: string) => {
     sendMessage(text);
@@ -31,6 +37,7 @@ export default function ChatLayout() {
         messages={messages}
         isStreaming={isStreaming}
         onSuggestionSelect={handleSuggestionSelect}
+        conversationId={conversationId}
       />
       <ChatInput
         onSend={sendMessage}

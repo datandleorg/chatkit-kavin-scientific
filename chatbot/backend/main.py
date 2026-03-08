@@ -22,7 +22,9 @@ from config import (
     MAX_FILE_SIZE_MB,
     ALLOWED_EXTENSIONS,
     ANTHROPIC_API_KEY,
+    CLAUDE_MODEL,
 )
+from pricing import compute_cost as compute_usage_cost
 from agent import chat_graph, run_agent
 from agent.graph import SYSTEM_PROMPT
 from utils.xml_quote_generator import XMLQuoteGenerator
@@ -179,6 +181,8 @@ class ExportQuoteRow(BaseModel):
 class ExportQuoteRequest(BaseModel):
     rows: list[ExportQuoteRow]
     file_name: str = "quote"
+    conversation_id: str | None = None
+    message_prompt: str | None = None
 
 
 @app.get("/health")
@@ -214,30 +218,68 @@ async def delete_conversation(conversation_id: str):
     return {"ok": True}
 
 
+def _rows_to_products(rows: list) -> list[dict]:
+    products = []
+    for row in rows:
+        if isinstance(row, dict):
+            products.append({
+                "name": row.get("name", ""),
+                "catalog_number": row.get("catalogNo") or row.get("catalog_no", ""),
+                "hs_code": row.get("hsn", ""),
+                "brand": row.get("brand", ""),
+                "packing": row.get("unit", ""),
+                "price": float(row.get("rate", 0)),
+                "discount": float(row.get("discount", 0)),
+                "quantity": float(row.get("qty", 1)),
+                "tax": float(row.get("gstPercent") or row.get("gst_percent", 0)),
+            })
+        else:
+            products.append({
+                "name": getattr(row, "name", ""),
+                "catalog_number": getattr(row, "catalogNo", ""),
+                "hs_code": getattr(row, "hsn", ""),
+                "brand": getattr(row, "brand", ""),
+                "packing": getattr(row, "unit", ""),
+                "price": float(getattr(row, "rate", 0)),
+                "discount": float(getattr(row, "discount", 0)),
+                "quantity": float(getattr(row, "qty", 1)),
+                "tax": float(getattr(row, "gstPercent", 0)),
+            })
+    return products
+
+
+@app.get("/usage")
+async def get_usage():
+    """Return token usage aggregates for dashboard (totals, by day, by_tool_calls, cost). Cost uses model_pricing.json and CLAUDE_MODEL."""
+    data = await db_service.get_usage_aggregates()
+    totals = data["totals"]
+    data["cost"] = compute_usage_cost(
+        totals.get("input_tokens", 0),
+        totals.get("output_tokens", 0),
+        totals.get("cache_tokens", 0),
+        CLAUDE_MODEL,
+    )
+    return data
+
+
 @app.post("/export-quote")
 async def export_quote(req: ExportQuoteRequest, background_tasks: BackgroundTasks):
-    """Generate an XLSX quote using the template with images preserved."""
+    """Generate an XLSX quote using the template with images preserved. Saves quote with conversation_id."""
     if not TEMPLATE_PATH.exists():
         raise HTTPException(500, "Quote template not found on server")
 
     output_dir = tempfile.mkdtemp()
     try:
-        products = []
-        for row in req.rows:
-            products.append({
-                "name": row.name,
-                "catalog_number": row.catalogNo,
-                "hs_code": row.hsn,
-                "brand": row.brand,
-                "packing": row.unit,
-                "price": row.rate,
-                "discount": row.discount,
-                "quantity": row.qty,
-                "tax": row.gstPercent,
-            })
-
+        products = _rows_to_products([r.model_dump() for r in req.rows])
         generator = XMLQuoteGenerator(str(TEMPLATE_PATH), output_dir)
         output_path = generator.generate_quote(products, req.file_name)
+
+        await db_service.save_quote(
+            req.conversation_id,
+            req.file_name,
+            [r.model_dump() for r in req.rows],
+            message_prompt=req.message_prompt,
+        )
 
         background_tasks.add_task(shutil.rmtree, output_dir, True)
 
@@ -249,6 +291,34 @@ async def export_quote(req: ExportQuoteRequest, background_tasks: BackgroundTask
     except Exception as e:
         shutil.rmtree(output_dir, ignore_errors=True)
         raise HTTPException(500, f"Failed to generate quote: {e}")
+
+
+@app.get("/quotes")
+async def list_quotes(limit: int = 50):
+    """List recent saved quotes for download."""
+    return await db_service.list_saved_quotes(limit=limit)
+
+
+@app.get("/quotes/{quote_id}/download")
+async def download_quote(quote_id: str, background_tasks: BackgroundTasks):
+    """Regenerate and return the XLSX for a saved quote."""
+    quote = await db_service.get_saved_quote(quote_id)
+    if not quote:
+        raise HTTPException(404, "Quote not found")
+    if not TEMPLATE_PATH.exists():
+        raise HTTPException(500, "Quote template not found on server")
+
+    output_dir = tempfile.mkdtemp()
+    products = _rows_to_products(quote.get("rows") or [])
+    generator = XMLQuoteGenerator(str(TEMPLATE_PATH), output_dir)
+    file_name = quote.get("file_name", "quote.xlsx")
+    output_path = generator.generate_quote(products, file_name)
+    background_tasks.add_task(shutil.rmtree, output_dir, True)
+    return FileResponse(
+        path=output_path,
+        filename=Path(output_path).name,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
 
 
 TOKEN_THRESHOLD = 30000
@@ -269,6 +339,24 @@ def _count_message_tokens(msgs: list[dict]) -> int:
         total += _count_tokens(msg.get("content") or "")
         total += 4
     return total
+
+
+def _usage_from_message(msg) -> dict[str, int] | None:
+    """Extract usage dict from an AIMessage/AIMessageChunk (usage_metadata + cache from input_token_details)."""
+    meta = getattr(msg, "usage_metadata", None) if msg else None
+    if not meta:
+        return None
+    inp = meta.get("input_tokens", 0) or 0
+    out = meta.get("output_tokens", 0) or 0
+    total = meta.get("total_tokens", 0) or (inp + out)
+    details = meta.get("input_token_details") or {}
+    cache = (details.get("cache_read") or 0) + (details.get("cache_creation") or 0)
+    return {
+        "input_tokens": inp,
+        "output_tokens": out,
+        "total_tokens": total,
+        "cache_tokens": cache,
+    }
 
 
 def _compress_assistant_content(content: str) -> str:
@@ -363,12 +451,14 @@ async def chat_stream(
     message: str = Form(...),
     session_id: str = Form(""),
     conversation_id: str = Form(""),
+    model: str = Form(""),
     files: list[UploadFile] = File(default=[]),
 ):
     """Stream chat responses through the LangGraph ReAct agent with tool calling."""
 
     conv_id = conversation_id or ""
     sid = session_id or ""
+    model_id = model.strip() or None
     file_names = [f.filename for f in files if f.filename]
     logger.info("── CHAT STREAM START ── conv=%s, msg=%r, files=%s",
                 conv_id[:8] if conv_id else "new", message[:80], file_names or "none")
@@ -418,6 +508,12 @@ async def chat_stream(
     all_tokens: list[str] = []
     pending_text: list[str] = []
     saved_blocks: list[dict] = []
+    run_usage: dict[str, int] = {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "cache_tokens": 0,
+    }
 
     def flush_text():
         if pending_text:
@@ -470,8 +566,11 @@ async def chat_stream(
 
             logger.info("Starting agent loop (recursion_limit=200)")
 
+            stream_state = {"messages": messages, "session_id": sid, "context": context}
+            if model_id:
+                stream_state["model_id"] = model_id
             async for event in chat_graph.astream_events(
-                {"messages": messages, "session_id": sid, "context": context},
+                stream_state,
                 version="v2",
                 config={"recursion_limit": 200},
             ):
@@ -495,6 +594,15 @@ async def chat_stream(
                                         all_tokens.append(block["text"])
                                         pending_text.append(block["text"])
                                         yield f"data: {json.dumps({'token': block['text']})}\n\n"
+
+                elif kind == "on_chat_model_end":
+                    output = event.get("data", {}).get("output")
+                    u = _usage_from_message(output)
+                    if u:
+                        run_usage["input_tokens"] += u.get("input_tokens", 0)
+                        run_usage["output_tokens"] += u.get("output_tokens", 0)
+                        run_usage["total_tokens"] += u.get("total_tokens", 0)
+                        run_usage["cache_tokens"] += u.get("cache_tokens", 0)
 
                 elif kind == "on_tool_start":
                     flush_text()
@@ -534,6 +642,17 @@ async def chat_stream(
                             saved_blocks[:] = [b for b in saved_blocks if not (b.get("type") == "tool" and b.get("toolCall", {}).get("name") == "prepare_quote_table")]
                             saved_blocks.append({"type": "table", "rows": rows})
                             logger.info("  Quote table generated: %d rows", len(rows))
+                            try:
+                                prompt_stored = effective_message[:2000] if len(effective_message) > 2000 else effective_message
+                                await db_service.save_quote(
+                                    conv_id,
+                                    "quote.xlsx",
+                                    rows,
+                                    message_prompt=prompt_stored,
+                                )
+                                logger.info("  Quote auto-saved to DB (conv=%s)", conv_id[:8])
+                            except Exception as save_err:
+                                logger.warning("  Quote auto-save failed: %s", save_err)
                             yield f"data: {json.dumps({'table_data': {'rows': rows, 'run_id': run_id}})}\n\n"
                         except (json.JSONDecodeError, TypeError):
                             logger.warning("  Quote table JSON parse failed")
@@ -553,11 +672,16 @@ async def chat_stream(
 
             flush_text()
             assistant_content = "".join(all_tokens)
-            await db_service.add_message(conv_id, "assistant", assistant_content, saved_blocks or None)
+            usage_to_store = run_usage if any(run_usage.values()) else None
+            await db_service.add_message(
+                conv_id, "assistant", assistant_content, saved_blocks or None, usage=usage_to_store
+            )
 
             response_tokens = _count_tokens(assistant_content)
-            logger.info("── CHAT STREAM DONE ── conv=%s, tool_calls=%d, response_tokens=%d, blocks=%d",
-                        conv_id[:8], tool_call_count, response_tokens, len(saved_blocks))
+            logger.info(
+                "── CHAT STREAM DONE ── conv=%s, tool_calls=%d, response_tokens=%d, blocks=%d, usage=%s",
+                conv_id[:8], tool_call_count, response_tokens, len(saved_blocks), run_usage,
+            )
 
             yield "data: [DONE]\n\n"
         except Exception as e:

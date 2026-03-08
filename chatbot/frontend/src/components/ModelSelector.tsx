@@ -2,9 +2,9 @@ import { ChevronDown } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 
 const models = [
-  { id: 'claude-sonnet', label: 'Claude Sonnet' },
-  { id: 'gpt-5', label: 'GPT-5' },
-  { id: 'gpt-4o', label: 'GPT-4o' },
+  { id: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4.5' },
+  { id: 'claude-3-5-sonnet-20241022', label: 'Claude Sonnet 4' },
+  { id: 'claude-3-5-sonnet-20240620', label: 'Claude Sonnet 4 (Jun 24)' },
 ];
 
 interface ModelSelectorProps {

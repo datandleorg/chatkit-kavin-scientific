@@ -58,19 +58,19 @@ Be concise and helpful. If the user uploads files, extracted chemicals are provi
 
 def _build_chat_graph() -> StateGraph:
     """Build the LangGraph ReAct agent for chat with tool calling."""
-    llm = ChatAnthropic(
-        model=CLAUDE_MODEL,
-        api_key=ANTHROPIC_API_KEY,
-        max_tokens=16000,
-        streaming=True,
-        thinking={"type": "enabled", "budget_tokens": 5000},
-    )
-    llm_with_tools = llm.bind_tools(ALL_TOOLS)
-
     tool_node = ToolNode(ALL_TOOLS)
 
     def chatbot(state: ChatState):
         messages = list(state["messages"])
+        model_id = state.get("model_id") or CLAUDE_MODEL
+        llm = ChatAnthropic(
+            model=model_id,
+            api_key=ANTHROPIC_API_KEY,
+            max_tokens=16000,
+            streaming=True,
+            thinking={"type": "enabled", "budget_tokens": 5000},
+        )
+        llm_with_tools = llm.bind_tools(ALL_TOOLS)
 
         if not messages or not isinstance(messages[0], SystemMessage):
             system = SYSTEM_PROMPT

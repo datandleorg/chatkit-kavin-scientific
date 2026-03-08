@@ -8,6 +8,7 @@ import QuoteTable from './QuoteTable';
 interface MessageBubbleProps {
   message: Message;
   isStreaming?: boolean;
+  conversationId?: string | null;
 }
 
 const TOOL_LABELS: Record<string, string> = {
@@ -223,7 +224,7 @@ function ToolGroup({ blocks }: { blocks: ContentBlock[] }) {
   );
 }
 
-export default function MessageBubble({ message, isStreaming }: MessageBubbleProps) {
+export default function MessageBubble({ message, isStreaming, conversationId }: MessageBubbleProps) {
   const isUser = message.role === 'user';
   const blocks = message.blocks;
 
@@ -355,7 +356,7 @@ export default function MessageBubble({ message, isStreaming }: MessageBubblePro
           }
           if (group.kind === 'table') {
             const tableBlock = group.items[0] as { type: 'table'; rows: QuoteRow[] };
-            return <QuoteTable key={`table-${gi}`} initialRows={tableBlock.rows} />;
+            return <QuoteTable key={`table-${gi}`} initialRows={tableBlock.rows} conversationId={conversationId} />;
           }
           return <ToolGroup key={`tools-${gi}`} blocks={group.items} />;
         })}
