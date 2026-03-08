@@ -8,7 +8,7 @@ services:
     ports:
       - "${MONGO_PORT:-27017}:27017"
     volumes:
-      - mongo_data:/data/db
+      - ${MOUNTED_VOLUME_PATH:-./data/mongodb}:/data/db
 
   backend:
     build: ./backend
@@ -24,7 +24,7 @@ services:
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     volumes:
-      - backend_uploads:/app/uploads
+      - ./data/uploads:/app/uploads
 
   frontend:
     build:
@@ -35,8 +35,5 @@ services:
     depends_on:
       - backend
     ports:
-      - "${FRONTEND_PORT:-3000}:80"
+      - "${FRONTEND_PORT:-8081}:80"
 
-volumes:
-  mongo_data:
-  backend_uploads:
