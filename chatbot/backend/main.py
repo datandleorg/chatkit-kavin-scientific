@@ -276,14 +276,14 @@ async def _get_usd_to_inr_rate() -> float | None:
 
 @app.get("/usage")
 async def get_usage():
-    """Return token usage aggregates for dashboard (totals, by day, by_tool_calls, cost). Cost uses model_pricing.json and CLAUDE_MODEL."""
+    """Return token usage aggregates for dashboard (totals, by day, by_tool_calls, cost). Cost uses model_pricing.json and CLAUDE_MODEL; reasoning runs use extended_thinking rate."""
     data = await db_service.get_usage_aggregates()
     totals = data["totals"]
-    cost_usd = compute_usage_cost(
-        totals.get("input_tokens", 0),
-        totals.get("output_tokens", 0),
-        totals.get("cache_tokens", 0),
-        CLAUDE_MODEL,
+    with_r = data.get("totals_with_reasoning") or {"input_tokens": 0, "output_tokens": 0, "cache_tokens": 0}
+    without_r = data.get("totals_without_reasoning") or {"input_tokens": 0, "output_tokens": 0, "cache_tokens": 0}
+    cost_usd = (
+        compute_usage_cost(with_r.get("input_tokens", 0), with_r.get("output_tokens", 0), with_r.get("cache_tokens", 0), CLAUDE_MODEL, use_reasoning=True)
+        + compute_usage_cost(without_r.get("input_tokens", 0), without_r.get("output_tokens", 0), without_r.get("cache_tokens", 0), CLAUDE_MODEL, use_reasoning=False)
     )
     data["cost"] = cost_usd
     rate = await _get_usd_to_inr_rate()
@@ -711,6 +711,8 @@ async def chat_stream(
             flush_text()
             assistant_content = "".join(all_tokens)
             usage_to_store = run_usage if any(run_usage.values()) else None
+            if usage_to_store is not None:
+                usage_to_store["use_reasoning"] = use_reasoning
             await db_service.add_message(
                 conv_id, "assistant", assistant_content, saved_blocks or None, usage=usage_to_store
             )

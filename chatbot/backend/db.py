@@ -173,9 +173,40 @@ async def get_usage_aggregates() -> dict:
         "total_tokens": sum(d["total_tokens"] for d in by_day),
         "cache_tokens": sum(d["cache_tokens"] for d in by_day),
     }
+
+    # Aggregate by use_reasoning for pricing (extended thinking vs normal output)
+    pipeline_reasoning = [
+        {"$match": {"usage": {"$exists": True}, "usage.input_tokens": {"$exists": True}, "usage.use_reasoning": True}},
+        {"$group": {"_id": None, "input_tokens": {"$sum": "$usage.input_tokens"}, "output_tokens": {"$sum": "$usage.output_tokens"}, "total_tokens": {"$sum": "$usage.total_tokens"}, "cache_tokens": {"$sum": "$usage.cache_tokens"}}},
+    ]
+    pipeline_no_reasoning = [
+        {"$match": {"usage": {"$exists": True}, "usage.input_tokens": {"$exists": True}, "$or": [{"usage.use_reasoning": {"$ne": True}}, {"usage.use_reasoning": {"$exists": False}}]}},
+        {"$group": {"_id": None, "input_tokens": {"$sum": "$usage.input_tokens"}, "output_tokens": {"$sum": "$usage.output_tokens"}, "total_tokens": {"$sum": "$usage.total_tokens"}, "cache_tokens": {"$sum": "$usage.cache_tokens"}}},
+    ]
+    cursor_reasoning = messages_col.aggregate(pipeline_reasoning)
+    cursor_no_reasoning = messages_col.aggregate(pipeline_no_reasoning)
+    doc_reasoning = await cursor_reasoning.to_list(length=1)
+    doc_no_reasoning = await cursor_no_reasoning.to_list(length=1)
+    r = doc_reasoning[0] if doc_reasoning else {}
+    nr = doc_no_reasoning[0] if doc_no_reasoning else {}
+    totals_with_reasoning = {
+        "input_tokens": r.get("input_tokens", 0),
+        "output_tokens": r.get("output_tokens", 0),
+        "total_tokens": r.get("total_tokens", 0),
+        "cache_tokens": r.get("cache_tokens", 0),
+    }
+    totals_without_reasoning = {
+        "input_tokens": nr.get("input_tokens", 0),
+        "output_tokens": nr.get("output_tokens", 0),
+        "total_tokens": nr.get("total_tokens", 0),
+        "cache_tokens": nr.get("cache_tokens", 0),
+    }
+
     by_tool_calls = await _aggregate_tool_calls()
     return {
         "totals": totals,
+        "totals_with_reasoning": totals_with_reasoning,
+        "totals_without_reasoning": totals_without_reasoning,
         "by_day": by_day,
         "by_tool_calls": by_tool_calls,
     }

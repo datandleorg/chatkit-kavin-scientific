@@ -34,10 +34,13 @@ def compute_cost(
     output_tokens: int,
     cache_tokens: int,
     model_id: str,
+    use_reasoning: bool = False,
 ) -> float:
     """
     Compute cost in USD from token counts and model pricing.
     Uses cache_read price for cache_tokens. Adds premium_per_token to every token.
+    When use_reasoning is True, output tokens are charged at extended_thinking_usd_per_mtok
+    (Claude extended thinking rate); otherwise at output_usd_per_mtok.
     """
     pricing = get_pricing_for_model(model_id)
     premium = get_premium_per_token()
@@ -48,6 +51,9 @@ def compute_cost(
         return round(premium_cost, 6)
 
     input_cost = input_tokens * (pricing["input_usd_per_mtok"] / 1_000_000)
-    output_cost = output_tokens * (pricing["output_usd_per_mtok"] / 1_000_000)
+    output_rate = (
+        pricing.get("extended_thinking_usd_per_mtok") or pricing["output_usd_per_mtok"]
+    ) if use_reasoning else pricing["output_usd_per_mtok"]
+    output_cost = output_tokens * (output_rate / 1_000_000)
     cache_cost = cache_tokens * (pricing["cache_read_usd_per_mtok"] / 1_000_000)
     return round(input_cost + output_cost + cache_cost + premium_cost, 6)
