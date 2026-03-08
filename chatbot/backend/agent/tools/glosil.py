@@ -32,7 +32,7 @@ async def search_glosil(search_term: str) -> str:
         return "Error: search_term is required"
 
     try:
-        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True, verify=False) as client:
             resp = await client.post(
                 "https://www.glosilscientific.com/search.php",
                 data={"search": search_term},
@@ -117,7 +117,7 @@ async def get_glosil_product_details(product_id: str, product_url: str) -> str:
         headers["Referer"] = "https://www.glosilscientific.com/search.php"
         headers.pop("Content-Type", None)
 
-        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True, verify=False) as client:
             resp = await client.get(product_url, headers=headers)
 
             if resp.status_code != 200:

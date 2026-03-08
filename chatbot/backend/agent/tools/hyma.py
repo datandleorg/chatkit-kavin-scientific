@@ -27,7 +27,7 @@ async def search_hyma(chemical_name: str) -> str:
         return "Error: chemical_name is required"
 
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=30.0, verify=False) as client:
             resp = await client.post(
                 "https://hymasynthesis.com/webservices/api/Values/GetProductsBasedOnChemicalName",
                 data={"ChemicalName": chemical_name},
@@ -92,7 +92,7 @@ async def get_hyma_product_details(item_code: str) -> str:
         return "Error: item_code is required"
 
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=30.0, verify=False) as client:
             stock_resp = await client.get(
                 "https://hymasynthesis.com/webservices/api/Values/GetWebStockItemMstBasedOnId",
                 params={"ItemCode": item_code},

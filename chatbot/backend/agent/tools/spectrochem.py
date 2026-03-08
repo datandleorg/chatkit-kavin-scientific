@@ -41,7 +41,7 @@ async def search_spectrochem(chemical_name: str) -> str:
         return "Error: chemical_name is required"
 
     try:
-        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True, verify=False) as client:
             resp = await client.get(
                 f"https://spectrochem.in/?s={quote_plus(chemical_name)}",
                 headers=SPECTROCHEM_SEARCH_HEADERS,
@@ -123,7 +123,7 @@ async def get_spectrochem_product_details(product_id: str, product_name: str) ->
             "referer": f"https://spectrochem.in/?s={quote_plus(product_name)}",
         }
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=30.0, verify=False) as client:
             resp = await client.post(
                 "https://spectrochem.in/wp-admin/admin-ajax.php",
                 data={

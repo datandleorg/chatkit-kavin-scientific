@@ -30,7 +30,7 @@ async def search_tci(search_term: str) -> str:
         return "Error: search_term is required"
 
     try:
-        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True, verify=False) as client:
             resp = await client.get(
                 f"https://www.tcichemicals.com/IN/en/search/?text={quote_plus(search_term)}",
                 headers=TCI_HEADERS,
@@ -129,7 +129,7 @@ async def get_tci_product_details(product_url: str) -> str:
     try:
         headers = {**TCI_HEADERS, "Referer": "https://www.tcichemicals.com/IN/en/search/"}
 
-        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True, verify=False) as client:
             resp = await client.get(product_url, headers=headers)
 
             if resp.status_code != 200:
