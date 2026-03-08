@@ -218,6 +218,8 @@ export interface UsageResponse {
   by_day: UsageByDay[];
   by_tool_calls: UsageByToolCall[];
   cost?: number;
+  cost_inr?: number | null;
+  usd_to_inr_rate?: number | null;
 }
 
 export interface SavedQuote {

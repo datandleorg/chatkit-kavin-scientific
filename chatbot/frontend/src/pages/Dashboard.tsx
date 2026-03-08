@@ -15,8 +15,9 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { BarChart3, MessageSquare, Download, FileSpreadsheet } from 'lucide-react';
+import { BarChart3, MessageSquare, Download, FileSpreadsheet, ExternalLink } from 'lucide-react';
 import { fetchUsage, fetchSavedQuotes, downloadQuote, type UsageResponse, type SavedQuote } from '../lib/api';
+import { CONVERSATION_ID_PARAM } from '../hooks/useChat';
 
 const TOKEN_COLORS = {
   input_tokens: '#6366f1',
@@ -90,6 +91,8 @@ export default function Dashboard() {
 
   const totals = data?.totals ?? { input_tokens: 0, output_tokens: 0, total_tokens: 0, cache_tokens: 0 };
   const cost = data?.cost ?? 0;
+  const costInr = data?.cost_inr ?? null;
+  const usdToInrRate = data?.usd_to_inr_rate ?? null;
   const byDay = data?.by_day ?? [];
   const byToolCalls = (data?.by_tool_calls ?? []).map((t) => ({
     ...t,
@@ -125,7 +128,7 @@ export default function Dashboard() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Summary cards */}
-        <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-10">
+        <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-10">
           <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] p-5">
             <div className="text-xs font-medium uppercase tracking-wide text-[var(--color-fg-muted)] mb-1">Input tokens</div>
             <div className="text-2xl font-semibold" style={{ color: TOKEN_COLORS.input_tokens }}>
@@ -151,9 +154,24 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] p-5">
-            <div className="text-xs font-medium uppercase tracking-wide text-[var(--color-fg-muted)] mb-1">Estimated cost (model + premium)</div>
+            <div className="text-xs font-medium uppercase tracking-wide text-[var(--color-fg-muted)] mb-1">Estimated cost (USD)</div>
             <div className="text-2xl font-semibold text-[var(--color-fg)]">
               ${cost.toFixed(4)}
+            </div>
+          </div>
+          <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] p-5">
+            <div className="text-xs font-medium uppercase tracking-wide text-[var(--color-fg-muted)] mb-1">
+              Estimated cost (₹ INR)
+              {usdToInrRate != null && (
+                <span className="block font-normal normal-case mt-0.5">@ ₹{usdToInrRate.toFixed(2)}/USD</span>
+              )}
+            </div>
+            <div className="text-2xl font-semibold text-[var(--color-fg)]">
+              {costInr != null ? (
+                <>₹{costInr.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</>
+              ) : (
+                <span className="text-[var(--color-fg-muted)] text-base">—</span>
+              )}
             </div>
           </div>
         </section>
@@ -287,8 +305,13 @@ export default function Dashboard() {
                   key={q.id}
                   className="flex items-center justify-between gap-4 py-2 px-3 rounded-lg hover:bg-[var(--color-bg-tertiary)]"
                 >
-                  <div className="min-w-0 flex-1">
-                    <span className="font-medium truncate block">{q.file_name}</span>
+                  <Link
+                    to={q.conversation_id ? `/?${CONVERSATION_ID_PARAM}=${q.conversation_id}` : '#'}
+                    className={`min-w-0 flex-1 flex items-center gap-2 ${q.conversation_id ? 'cursor-pointer' : 'cursor-default pointer-events-none'}`}
+                    title={q.conversation_id ? 'Open conversation' : undefined}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <span className="font-medium truncate block">{q.file_name}</span>
                     {q.message_prompt ? (
                       <p className="text-xs text-[var(--color-fg-muted)] truncate mt-0.5" title={q.message_prompt}>
                         “{q.message_prompt.length > 60 ? q.message_prompt.slice(0, 60) + '…' : q.message_prompt}”
@@ -300,7 +323,11 @@ export default function Dashboard() {
                       {' · '}
                       {new Date(q.created_at).toLocaleString()}
                     </span>
-                  </div>
+                    </div>
+                    {q.conversation_id ? (
+                      <ExternalLink className="w-4 h-4 shrink-0 text-[var(--color-fg-muted)]" aria-hidden />
+                    ) : null}
+                  </Link>
                   <a
                     href="#"
                     onClick={async (e) => {

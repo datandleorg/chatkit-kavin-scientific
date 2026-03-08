@@ -5,8 +5,10 @@ import tempfile
 import shutil
 import logging
 import io
+import time
 import aiofiles
 from pathlib import Path
+import httpx
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, FileResponse
@@ -248,17 +250,49 @@ def _rows_to_products(rows: list) -> list[dict]:
     return products
 
 
+_usd_to_inr_cache: tuple[float, float] | None = None  # (rate, timestamp)
+_USD_INR_CACHE_TTL = 3600  # 1 hour
+
+
+async def _get_usd_to_inr_rate() -> float | None:
+    """Fetch current USD to INR rate from Frankfurter API. Cached for 1 hour."""
+    global _usd_to_inr_cache
+    now = time.time()
+    if _usd_to_inr_cache is not None and (now - _usd_to_inr_cache[1]) < _USD_INR_CACHE_TTL:
+        return _usd_to_inr_cache[0]
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            r = await client.get("https://api.frankfurter.app/latest?from=USD&to=INR")
+            r.raise_for_status()
+            out = r.json()
+            rate = float(out.get("rates", {}).get("INR", 0))
+            if rate > 0:
+                _usd_to_inr_cache = (rate, now)
+                return rate
+    except Exception as e:
+        logger.warning("USD to INR rate fetch failed: %s", e)
+    return _usd_to_inr_cache[0] if _usd_to_inr_cache else None
+
+
 @app.get("/usage")
 async def get_usage():
     """Return token usage aggregates for dashboard (totals, by day, by_tool_calls, cost). Cost uses model_pricing.json and CLAUDE_MODEL."""
     data = await db_service.get_usage_aggregates()
     totals = data["totals"]
-    data["cost"] = compute_usage_cost(
+    cost_usd = compute_usage_cost(
         totals.get("input_tokens", 0),
         totals.get("output_tokens", 0),
         totals.get("cache_tokens", 0),
         CLAUDE_MODEL,
     )
+    data["cost"] = cost_usd
+    rate = await _get_usd_to_inr_rate()
+    if rate is not None:
+        data["cost_inr"] = round(cost_usd * rate, 2)
+        data["usd_to_inr_rate"] = rate
+    else:
+        data["cost_inr"] = None
+        data["usd_to_inr_rate"] = None
     return data
 
 
