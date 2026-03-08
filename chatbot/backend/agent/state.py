@@ -8,6 +8,7 @@ class ChatState(TypedDict, total=False):
     session_id: str
     context: str
     model_id: str
+    use_reasoning: bool
 
 
 class WorkflowState(TypedDict, total=False):

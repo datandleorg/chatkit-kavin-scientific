@@ -46,6 +46,7 @@ export async function streamChat(
   files?: File[],
   callbacks?: StreamCallbacks,
   model?: string | null,
+  reasoning?: boolean,
 ) {
   void _history;
   const { onToken, onThinking, onSummarizing, onExtracting, onFileExtracted, onToolStart, onToolEnd, onTableData, onConversationId, onDone, onError } = callbacks ?? {};
@@ -55,11 +56,14 @@ export async function streamChat(
     if (sessionId) formData.append('session_id', sessionId);
     if (conversationId) formData.append('conversation_id', conversationId);
     if (model) formData.append('model', model);
+    const useReasoning = reasoning === true;
+    formData.append('reasoning', useReasoning ? 'true' : 'false');
     if (files) {
       files.forEach((f) => formData.append('files', f));
     }
 
-    const res = await fetch(`${BASE_URL}/chat/stream`, {
+    const url = `${BASE_URL}/chat/stream?reasoning=${useReasoning ? 'true' : 'false'}`;
+    const res = await fetch(url, {
       method: 'POST',
       body: formData,
     });

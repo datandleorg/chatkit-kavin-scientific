@@ -9,7 +9,7 @@ import time
 import aiofiles
 from pathlib import Path
 import httpx
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException, BackgroundTasks
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, BackgroundTasks, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, FileResponse
 from pydantic import BaseModel
@@ -486,6 +486,8 @@ async def chat_stream(
     session_id: str = Form(""),
     conversation_id: str = Form(""),
     model: str = Form(""),
+    reasoning: str = Form("false"),
+    reasoning_query: str | None = Query(None, alias="reasoning"),
     files: list[UploadFile] = File(default=[]),
 ):
     """Stream chat responses through the LangGraph ReAct agent with tool calling."""
@@ -493,9 +495,11 @@ async def chat_stream(
     conv_id = conversation_id or ""
     sid = session_id or ""
     model_id = model.strip() or None
+    reasoning_val = (reasoning_query or reasoning).strip().lower()
+    use_reasoning = reasoning_val in ("true", "1", "yes")
     file_names = [f.filename for f in files if f.filename]
-    logger.info("── CHAT STREAM START ── conv=%s, msg=%r, files=%s",
-                conv_id[:8] if conv_id else "new", message[:80], file_names or "none")
+    logger.info("── CHAT STREAM START ── conv=%s, msg=%r, files=%s, use_reasoning=%s",
+                conv_id[:8] if conv_id else "new", message[:80], file_names or "none", use_reasoning)
 
     if not conv_id:
         title = message[:80].strip() or "New conversation"
@@ -600,7 +604,7 @@ async def chat_stream(
 
             logger.info("Starting agent loop (recursion_limit=200)")
 
-            stream_state = {"messages": messages, "session_id": sid, "context": context}
+            stream_state = {"messages": messages, "session_id": sid, "context": context, "use_reasoning": use_reasoning}
             if model_id:
                 stream_state["model_id"] = model_id
             async for event in chat_graph.astream_events(

@@ -73,7 +73,7 @@ export function useChat() {
   }, []);
 
   const sendMessage = useCallback(
-    async (text: string, files?: File[], model?: string | null) => {
+    async (text: string, files?: File[], model?: string | null, reasoning?: boolean) => {
       if (isStreaming) return;
       abortRef.current = false;
 
@@ -234,7 +234,7 @@ export function useChat() {
           }));
           setIsStreaming(false);
         },
-      }, model ?? undefined);
+      }, model ?? undefined, reasoning);
     },
     [isStreaming, messages, sessionId, conversationId, updateLastAssistant],
   );

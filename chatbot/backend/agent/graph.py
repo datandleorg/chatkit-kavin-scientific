@@ -63,12 +63,18 @@ def _build_chat_graph() -> StateGraph:
     def chatbot(state: ChatState):
         messages = list(state["messages"])
         model_id = state.get("model_id") or CLAUDE_MODEL
+        use_reasoning = state.get("use_reasoning", False)
+        thinking = (
+            {"type": "enabled", "budget_tokens": 5000}
+            if use_reasoning
+            else {"type": "disabled"}
+        )
         llm = ChatAnthropic(
             model=model_id,
             api_key=ANTHROPIC_API_KEY,
             max_tokens=16000,
             streaming=True,
-            thinking={"type": "enabled", "budget_tokens": 5000},
+            thinking=thinking,
         )
         llm_with_tools = llm.bind_tools(ALL_TOOLS)
 

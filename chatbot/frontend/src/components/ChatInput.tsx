@@ -1,9 +1,9 @@
 import { useState, useRef, useCallback, type KeyboardEvent, type DragEvent } from 'react';
-import { Plus, ArrowUp, X, FileText, Image, Loader2, Square, Upload } from 'lucide-react';
+import { Plus, ArrowUp, X, FileText, Image, Loader2, Square, Upload, Brain } from 'lucide-react';
 import ModelSelector from './ModelSelector';
 
 interface ChatInputProps {
-  onSend: (text: string, files?: File[], model?: string) => void;
+  onSend: (text: string, files?: File[], model?: string, reasoning?: boolean) => void;
   onStop?: () => void;
   disabled?: boolean;
 }
@@ -29,6 +29,7 @@ function fileIcon(name: string) {
 export default function ChatInput({ onSend, onStop, disabled }: ChatInputProps) {
   const [text, setText] = useState('');
   const [model, setModel] = useState('claude-sonnet-4-20250514');
+  const [reasoning, setReasoning] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const dragCounter = useRef(0);
@@ -45,7 +46,7 @@ export default function ChatInput({ onSend, onStop, disabled }: ChatInputProps) 
   const handleSend = () => {
     if (!canSend || disabled) return;
     const trimmed = text.trim() || (attachedFiles.length > 0 ? 'Process the attached files and search for the products across all vendors.' : '');
-    onSend(trimmed, attachedFiles.length > 0 ? attachedFiles : undefined, model);
+    onSend(trimmed, attachedFiles.length > 0 ? attachedFiles : undefined, model, reasoning);
     setText('');
     setAttachedFiles([]);
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
@@ -194,6 +195,34 @@ export default function ChatInput({ onSend, onStop, disabled }: ChatInputProps) 
                 className="hidden"
               />
               <ModelSelector value={model} onChange={setModel} />
+              <button
+                type="button"
+                onClick={() => setReasoning((r) => !r)}
+                className="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium
+                         text-[var(--color-fg-muted)] hover:bg-[var(--color-bg-tertiary)] cursor-pointer
+                         transition-colors duration-150 border-0 bg-transparent"
+                title={reasoning ? 'Extended thinking on (reasoning model)' : 'Extended thinking off'}
+                aria-label={reasoning ? 'Turn off reasoning' : 'Turn on reasoning'}
+                aria-pressed={reasoning}
+              >
+                <Brain
+                  size={14}
+                  className={reasoning ? 'text-[var(--color-accent)]' : 'text-[var(--color-fg-subtle)]'}
+                />
+                <span>Reasoning</span>
+                <span
+                  className={`w-7 h-3.5 rounded-full relative transition-colors duration-150 ${
+                    reasoning ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-bg-tertiary)]'
+                  }`}
+                  aria-hidden
+                >
+                  <span
+                    className={`absolute top-0.5 w-2.5 h-2.5 rounded-full bg-white shadow transition-transform duration-150 ${
+                      reasoning ? 'left-3.5' : 'left-0.5'
+                    }`}
+                  />
+                </span>
+              </button>
             </div>
           </div>
         </div>
