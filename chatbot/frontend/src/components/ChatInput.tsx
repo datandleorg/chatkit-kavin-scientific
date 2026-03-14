@@ -7,6 +7,9 @@ interface ChatInputProps {
   onSend: (text: string, files?: File[], model?: string, reasoning?: boolean) => void;
   onStop?: () => void;
   disabled?: boolean;
+  /** When provided with onReasoningChange, the reasoning toggle is controlled by the parent. */
+  reasoning?: boolean;
+  onReasoningChange?: (value: boolean) => void;
 }
 
 const ACCEPTED_TYPES = new Set([
@@ -27,10 +30,12 @@ function fileIcon(name: string) {
   return <FileText size={12} />;
 }
 
-export default function ChatInput({ onSend, onStop, disabled }: ChatInputProps) {
+export default function ChatInput({ onSend, onStop, disabled, reasoning: reasoningProp, onReasoningChange }: ChatInputProps) {
   const [text, setText] = useState('');
   const [model, setModel] = useState('claude-sonnet-4-20250514');
-  const [reasoning, setReasoning] = useState(false);
+  const [internalReasoning, setInternalReasoning] = useState(false);
+  const reasoning = reasoningProp !== undefined ? reasoningProp : internalReasoning;
+  const setReasoning = onReasoningChange ?? setInternalReasoning;
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const dragCounter = useRef(0);

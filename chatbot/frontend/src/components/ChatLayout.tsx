@@ -6,7 +6,7 @@ import ConversationSidebar from './ConversationSidebar';
 import { useChat, CONVERSATION_ID_PARAM } from '../hooks/useChat';
 
 export default function ChatLayout() {
-  const { messages, isStreaming, conversationId, sendMessage, stopStreaming, newChat, loadConversation } = useChat();
+  const { messages, isStreaming, conversationId, sendMessage, stopStreaming, newChat, loadConversation, reasoning, setReasoning } = useChat();
   const [historyOpen, setHistoryOpen] = useState(false);
 
   // Open conversation from URL on load (for shared links)
@@ -43,6 +43,8 @@ export default function ChatLayout() {
         onSend={sendMessage}
         onStop={stopStreaming}
         disabled={isStreaming}
+        reasoning={reasoning}
+        onReasoningChange={setReasoning}
       />
     </div>
   );

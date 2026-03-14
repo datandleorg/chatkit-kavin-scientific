@@ -7,7 +7,7 @@ from agent.state import WorkflowState
 
 
 async def extraction_node(state: WorkflowState) -> dict:
-    """Extract chemical names from uploaded PDF/image files using Claude vision."""
+    """Extract all product names from uploaded PDF/image files using Claude vision (chemicals, equipment, consumables)."""
     file_paths = state.get("file_paths", [])
     if not file_paths:
         return {"chemical_list": [], "error": "No files provided"}
@@ -48,9 +48,10 @@ async def extraction_node(state: WorkflowState) -> dict:
     content_blocks.append({
         "type": "text",
         "text": (
-            "Extract all chemical names from these documents. "
-            "Return ONLY a JSON array of chemical name strings, no other text. "
-            'Example: ["Formic Acid", "Sodium Chloride", "Methanol"]'
+            "Extract ALL product names or descriptions from these documents. "
+            "Include every item: chemicals, lab equipment (e.g. micropipettes, centrifuges), consumables (e.g. microcentrifuge tubes, tips), instruments, and any other products listed. "
+            "Do not skip any row or item. Return ONLY a JSON array of strings, one per product, no other text. "
+            'Example: ["Formic Acid", "Sodium Chloride", "MICROPIPETTE 10-100UL", "MICROCENTRIFUGE TUBE 1.5ML PK/500"]'
         ),
     })
 

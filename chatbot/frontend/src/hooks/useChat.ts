@@ -10,6 +10,7 @@ export function useChat() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [sessionId, setSessionId] = useState<string | undefined>();
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [reasoning, setReasoning] = useState(false);
   const abortRef = useRef(false);
   const didSyncUrlRef = useRef(false);
 
@@ -73,9 +74,10 @@ export function useChat() {
   }, []);
 
   const sendMessage = useCallback(
-    async (text: string, files?: File[], model?: string | null, reasoning?: boolean) => {
+    async (text: string, files?: File[], model?: string | null, reasoningParam?: boolean) => {
       if (isStreaming) return;
       abortRef.current = false;
+      const effectiveReasoning = reasoningParam !== undefined ? reasoningParam : reasoning;
 
       const userMsg: Message = {
         id: crypto.randomUUID(),
@@ -234,9 +236,9 @@ export function useChat() {
           }));
           setIsStreaming(false);
         },
-      }, model ?? undefined, reasoning);
+      }, model ?? undefined, effectiveReasoning);
     },
-    [isStreaming, messages, sessionId, conversationId, updateLastAssistant],
+    [isStreaming, messages, sessionId, conversationId, updateLastAssistant, reasoning],
   );
 
   const stopStreaming = useCallback(() => {
@@ -244,5 +246,5 @@ export function useChat() {
     setIsStreaming(false);
   }, []);
 
-  return { messages, isStreaming, sessionId, conversationId, sendMessage, stopStreaming, newChat, loadConversation };
+  return { messages, isStreaming, sessionId, conversationId, sendMessage, stopStreaming, newChat, loadConversation, reasoning, setReasoning };
 }
