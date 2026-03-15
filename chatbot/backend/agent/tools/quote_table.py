@@ -6,7 +6,7 @@ from langchain_core.tools import tool
 def prepare_quote_table(products: list[dict], file_name: str = "") -> str:
     """Render an editable procurement quote table in the UI.
 
-    Call this AFTER gathering product details from vendors. Include ALL matching products from your search results — do not omit or limit to a subset.
+    Call this AFTER gathering product details from vendors. Pass the COMPLETE list: every product for which you fetched details must appear as one row. Do not omit, cap, or sample — retain all relevant search result items so nothing is missed. Omitting products is incorrect.
     Each item in products should have these fields (use empty string or 0 for missing values):
       - name: str          (product name)
       - catalog_no: str    (catalog / product code)

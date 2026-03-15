@@ -9,14 +9,17 @@ export default function ChatLayout() {
   const { messages, isStreaming, conversationId, sendMessage, stopStreaming, newChat, loadConversation, reasoning, setReasoning, model, setModel } = useChat();
   const [historyOpen, setHistoryOpen] = useState(false);
 
-  // Open conversation from URL on load (for shared links)
   useEffect(() => {
     const c = new URLSearchParams(window.location.search).get(CONVERSATION_ID_PARAM);
     if (c) loadConversation(c);
   }, [loadConversation]);
 
   const handleSuggestionSelect = (text: string) => {
-    sendMessage(text);
+    sendMessage(text, undefined, undefined, undefined);
+  };
+
+  const handleSend = (text: string, files?: File[], modelParam?: string, reasoningParam?: boolean) => {
+    sendMessage(text, files, modelParam, reasoningParam);
   };
 
   return (
@@ -39,8 +42,9 @@ export default function ChatLayout() {
         onSuggestionSelect={handleSuggestionSelect}
         conversationId={conversationId}
       />
+
       <ChatInput
-        onSend={sendMessage}
+        onSend={handleSend}
         onStop={stopStreaming}
         disabled={isStreaming}
         reasoning={reasoning}

@@ -11,6 +11,7 @@ export function useChat() {
   const [sessionId, setSessionId] = useState<string | undefined>();
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [reasoning, setReasoning] = useState(false);
+  const [model, setModel] = useState<string>('gpt-5-mini');
   const abortRef = useRef(false);
   const didSyncUrlRef = useRef(false);
 
@@ -79,7 +80,7 @@ export function useChat() {
   }, []);
 
   const sendMessage = useCallback(
-    async (text: string, files?: File[], model?: string | null, reasoningParam?: boolean) => {
+    async (text: string, files?: File[], model?: string | null, reasoningParam?: boolean, kbIds?: string[]) => {
       if (isStreaming) return;
       abortRef.current = false;
       const effectiveReasoning = reasoningParam !== undefined ? reasoningParam : reasoning;
@@ -251,9 +252,9 @@ export function useChat() {
           }));
           setIsStreaming(false);
         },
-      }, model ?? undefined, effectiveReasoning);
+      }, model ?? undefined, effectiveReasoning, kbIds);
     },
-    [isStreaming, messages, sessionId, conversationId, updateLastAssistant, reasoning],
+    [isStreaming, messages, sessionId, conversationId, updateLastAssistant, reasoning, model],
   );
 
   const stopStreaming = useCallback(() => {
@@ -261,5 +262,5 @@ export function useChat() {
     setIsStreaming(false);
   }, []);
 
-  return { messages, isStreaming, sessionId, conversationId, sendMessage, stopStreaming, newChat, loadConversation, reasoning, setReasoning };
+  return { messages, isStreaming, sessionId, conversationId, sendMessage, stopStreaming, newChat, loadConversation, reasoning, setReasoning, model, setModel };
 }

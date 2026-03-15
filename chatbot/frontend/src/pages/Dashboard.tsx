@@ -15,7 +15,7 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { BarChart3, MessageSquare, Download, FileSpreadsheet, ExternalLink } from 'lucide-react';
+import { BarChart3, MessageSquare, Download, FileSpreadsheet, ExternalLink, Database } from 'lucide-react';
 import { fetchUsage, fetchSavedQuotes, downloadQuote, type UsageResponse, type SavedQuote } from '../lib/api';
 import { CONVERSATION_ID_PARAM } from '../hooks/useChat';
 
@@ -33,6 +33,7 @@ const TOOL_LABELS: Record<string, string> = {
   get_spectrochem_product_details: 'Spectrochem Details',
   search_glosil: 'Search Glosil',
   get_glosil_product_details: 'Glosil Details',
+  search_science_house: 'Search Science House',
   search_tci: 'Search TCI',
   get_tci_product_details: 'TCI Details',
   prepare_quote_table: 'Quote Table',
@@ -116,6 +117,13 @@ export default function Dashboard() {
             <BarChart3 className="w-6 h-6 text-[var(--color-accent)]" />
             <h1 className="text-lg font-semibold">Token usage</h1>
           </div>
+          <Link
+            to="/knowledge-base"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-[var(--color-fg-muted)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-fg)] transition-colors"
+          >
+            <Database className="w-4 h-4" />
+            Knowledge Base
+          </Link>
           <Link
             to="/"
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-[var(--color-fg-muted)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-fg)] transition-colors"

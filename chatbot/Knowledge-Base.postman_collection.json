@@ -1,0 +1,139 @@
+{
+  "info": {
+    "name": "Knowledge Base",
+    "description": "APIs for knowledge base: create, list, check duplicate, ingest documents, list/remove documents, delete KB, hybrid search.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "kb_id",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Create knowledge base",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"vendor_name\": \"Acme Chemicals\"\n}"
+        },
+        "url": "{{base_url}}/knowledge-bases",
+        "description": "Create a new knowledge base by vendor name. Returns 409 if vendor already exists."
+      }
+    },
+    {
+      "name": "Check duplicate (vendor name)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/knowledge-bases/check?vendor_name=Acme Chemicals",
+          "host": ["{{base_url}}"],
+          "path": ["knowledge-bases", "check"],
+          "query": [
+            {
+              "key": "vendor_name",
+              "value": "Acme Chemicals"
+            }
+          ]
+        },
+        "description": "Check if a vendor name already has a knowledge base. Returns exists and id."
+      }
+    },
+    {
+      "name": "List knowledge bases",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/knowledge-bases",
+        "description": "List all knowledge bases (id, vendor_name)."
+      }
+    },
+    {
+      "name": "List documents in KB",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/knowledge-bases/{{kb_id}}/documents",
+        "description": "List documents in a KB: source_filename and chunk_count per document."
+      }
+    },
+    {
+      "name": "Ingest documents (PDF/Excel)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "files",
+              "type": "file",
+              "src": [],
+              "description": "Select one or more PDF or Excel files"
+            }
+          ]
+        },
+        "url": "{{base_url}}/knowledge-bases/{{kb_id}}/ingest",
+        "description": "Upload PDF/Excel files. Response is SSE stream with stage: chunking, chunking_done, embedding, done (or error)."
+      }
+    },
+    {
+      "name": "Remove documents from KB",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"source_filenames\": [\"catalog.pdf\", \"prices.xlsx\"]\n}"
+        },
+        "url": "{{base_url}}/knowledge-bases/{{kb_id}}/documents",
+        "description": "Remove documents by source filename. Rebuilds embeddings and BM25. Returns removed count and chunks_deleted."
+      }
+    },
+    {
+      "name": "Delete knowledge base",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{base_url}}/knowledge-bases/{{kb_id}}",
+        "description": "Delete a knowledge base entirely. Returns { \"deleted\": true } or 404."
+      }
+    },
+    {
+      "name": "Hybrid search",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"search query text\",\n  \"kb_ids\": [\"{{kb_id}}\"],\n  \"top_k\": 10\n}"
+        },
+        "url": "{{base_url}}/knowledge-bases/search",
+        "description": "Hybrid search (vector + BM25, RRF) over selected knowledge bases. Returns results with kb_id, vendor_name, and chunks array. Requires POST /knowledge-bases/search endpoint to be implemented if not present."
+      }
+    }
+  ]
+}

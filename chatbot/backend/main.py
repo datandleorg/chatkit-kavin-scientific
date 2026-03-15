@@ -31,6 +31,22 @@ from agent import chat_graph, run_agent
 from agent.graph import SYSTEM_PROMPT
 from utils.xml_quote_generator import XMLQuoteGenerator
 import db as db_service
+from knowledge_base import (
+    create_knowledge_base,
+    check_duplicate,
+    list_knowledge_bases,
+    get_kb,
+    get_kb_id_by_vendor_name,
+    get_documents,
+    delete_knowledge_base,
+    remove_documents,
+    add_chunks_with_embeddings,
+    chunk_file,
+    hybrid_search,
+    embed_texts,
+    get_kb_mongo_status,
+    DuplicateVendorError,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -231,6 +247,7 @@ app = FastAPI(title="Chemical Procurement API")
 @app.on_event("startup")
 async def startup_db():
     await db_service.ensure_indexes()
+    await db_service.ensure_kb_indexes()
 
 app.add_middleware(
     CORSMiddleware,
@@ -369,6 +386,159 @@ async def delete_conversation(conversation_id: str):
         raise HTTPException(404, "Conversation not found")
     await db_service.delete_conversation(conversation_id)
     return {"ok": True}
+
+
+# --- Knowledge Base ---
+
+
+class CreateKBRequest(BaseModel):
+    vendor_name: str
+
+
+class RemoveDocumentsRequest(BaseModel):
+    source_filenames: list[str]
+
+
+class KBSearchRequest(BaseModel):
+    query: str
+    kb_ids: list[str] = []
+    vendor_names: list[str] | None = None
+    top_k: int = 10
+
+
+@app.post("/knowledge-bases/search")
+async def kb_search(req: KBSearchRequest):
+    """Hybrid search (vector + BM25, RRF) over selected knowledge bases. Use kb_ids or vendor_names. Returns results with kb_id, vendor_name, chunks."""
+    kb_id_list: list[str] = []
+    if req.vendor_names and len(req.vendor_names) > 0:
+        for vname in req.vendor_names:
+            kid = await get_kb_id_by_vendor_name(vname.strip())
+            if kid and kid not in kb_id_list:
+                kb_id_list.append(kid)
+    else:
+        kb_id_list = list(req.kb_ids) if req.kb_ids else []
+    results = []
+    logger.info("Hybrid search: query=%s, kb_ids=%s, top_k=%d", req.query, kb_id_list, req.top_k)
+    for kid in kb_id_list:
+        entry = await get_kb(kid)
+        if not entry:
+            continue
+        chunks = await hybrid_search(kid, req.query, top_k=req.top_k)
+        logger.info("Hybrid search results: kb_id=%s, %d chunks", kid, len(chunks))
+        results.append({"kb_id": kid, "vendor_name": entry.vendor_name, "chunks": chunks})
+    return {"results": results}
+
+
+@app.post("/knowledge-bases")
+async def kb_create(req: CreateKBRequest):
+    """Create a knowledge base by vendor name. 409 if vendor already exists."""
+    try:
+        kb_id, vendor_name = await create_knowledge_base(req.vendor_name)
+        return {"id": kb_id, "vendor_name": vendor_name}
+    except DuplicateVendorError as e:
+        raise HTTPException(409, detail={"error": "Vendor already exists", "id": e.existing_id})
+
+
+@app.get("/knowledge-bases/check")
+async def kb_check(vendor_name: str = Query(..., alias="vendor_name")):
+    """Check if a vendor name already has a knowledge base."""
+    exists, existing_id = await check_duplicate(vendor_name)
+    return {"exists": exists, "id": existing_id}
+
+
+@app.get("/knowledge-bases")
+async def kb_list():
+    """List all knowledge bases."""
+    return await list_knowledge_bases()
+
+
+@app.get("/knowledge-bases/mongo-status")
+async def kb_mongo_status():
+    """Return MongoDB KB status: knowledge_bases and kb_chunks counts."""
+    return await get_kb_mongo_status()
+
+
+@app.get("/knowledge-bases/{kb_id}/documents")
+async def kb_list_documents(kb_id: str):
+    """List documents (source_filename, chunk_count) in a KB."""
+    if await get_kb(kb_id) is None:
+        raise HTTPException(404, "Knowledge base not found")
+    return await get_documents(kb_id)
+
+
+@app.post("/knowledge-bases/{kb_id}/ingest")
+async def kb_ingest(kb_id: str, files: list[UploadFile] = File(...)):
+    """Ingest PDF/Excel files into a KB. Returns SSE stream with progress."""
+    if await get_kb(kb_id) is None:
+        raise HTTPException(404, "Knowledge base not found")
+    if not files:
+        raise HTTPException(400, "No files provided")
+
+    import asyncio
+    from concurrent.futures import ThreadPoolExecutor
+
+    async def event_stream():
+        total_added = 0
+        all_chunks: list[tuple[str, dict]] = []
+        try:
+            for f in files:
+                if not f.filename:
+                    continue
+                filename = f.filename
+                yield f"data: {json.dumps({'stage': 'chunking', 'file': filename, 'detail': 'reading'})}\n\n"
+                content = await f.read()
+                try:
+                    chunks = chunk_file(content, filename)
+                except ValueError as e:
+                    yield f"data: {json.dumps({'stage': 'error', 'message': str(e)})}\n\n"
+                    return
+                yield f"data: {json.dumps({'stage': 'chunking_done', 'file': filename, 'chunks': len(chunks)})}\n\n"
+                all_chunks.extend(chunks)
+            if not all_chunks:
+                yield f"data: {json.dumps({'stage': 'done', 'chunks_added': 0})}\n\n"
+                return
+            total = len(all_chunks)
+            batch_size = 50
+            loop = asyncio.get_event_loop()
+            executor = ThreadPoolExecutor(max_workers=1)
+            for start in range(0, total, batch_size):
+                batch = all_chunks[start : start + batch_size]
+                texts = [c[0] for c in batch]
+                embeddings = await loop.run_in_executor(executor, lambda t=texts: embed_texts(t))
+                triples = [(batch[i][0], batch[i][1], embeddings[i]) for i in range(len(batch))]
+                await add_chunks_with_embeddings(kb_id, triples)
+                total_added += len(batch)
+                yield f"data: {json.dumps({'stage': 'embedding', 'current': min(start + len(batch), total), 'total': total})}\n\n"
+            yield f"data: {json.dumps({'stage': 'done', 'chunks_added': total_added})}\n\n"
+        except Exception as e:
+            logger.exception("KB ingest failed")
+            yield f"data: {json.dumps({'stage': 'error', 'message': str(e)})}\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@app.delete("/knowledge-bases/{kb_id}/documents")
+async def kb_remove_documents(kb_id: str, req: RemoveDocumentsRequest):
+    """Remove documents by source filename."""
+    if await get_kb(kb_id) is None:
+        raise HTTPException(404, "Knowledge base not found")
+    try:
+        removed, chunks_deleted = await remove_documents(kb_id, req.source_filenames)
+        return {"removed": removed, "chunks_deleted": chunks_deleted}
+    except KeyError as e:
+        raise HTTPException(404, str(e))
+
+
+@app.delete("/knowledge-bases/{kb_id}")
+async def kb_delete(kb_id: str):
+    """Delete a knowledge base entirely."""
+    if not await delete_knowledge_base(kb_id):
+        raise HTTPException(404, "Knowledge base not found")
+    return {"deleted": True}
 
 
 def _rows_to_products(rows: list) -> list[dict]:
@@ -646,6 +816,7 @@ async def chat_stream(
     reasoning: str = Form("false"),
     reasoning_query: str | None = Query(None, alias="reasoning"),
     files: list[UploadFile] = File(default=[]),
+    kb_ids: str = Form(""),
 ):
     """Stream chat responses through the LangGraph ReAct agent with tool calling."""
 

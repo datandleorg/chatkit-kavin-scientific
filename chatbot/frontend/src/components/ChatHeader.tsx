@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { BarChart3, Clock, SquarePen } from 'lucide-react';
+import { BarChart3, Clock, SquarePen, Database } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 
 interface ChatHeaderProps {
@@ -12,6 +12,14 @@ export default function ChatHeader({ onToggleHistory, onNewChat }: ChatHeaderPro
     <header className="flex items-center justify-end px-4 py-2">
       <div className="flex items-center gap-1">
         <ThemeToggle />
+        <Link
+          to="/knowledge-base"
+          className="flex items-center justify-center w-9 h-9 rounded-lg
+                     hover:bg-[var(--color-bg-secondary)] transition-colors duration-200"
+          aria-label="Knowledge Base"
+        >
+          <Database size={18} className="text-[var(--color-fg-muted)]" />
+        </Link>
         <Link
           to="/dashboard"
           className="flex items-center justify-center w-9 h-9 rounded-lg

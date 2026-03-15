@@ -15,12 +15,54 @@ conversations_col = db["conversations"]
 messages_col = db["messages"]
 saved_quotes_col = db["saved_quotes"]
 
+# Knowledge base: KB entities and chunks (with embeddings for vector search)
+knowledge_bases_col = db["knowledge_bases"]
+kb_chunks_col = db["kb_chunks"]
+
+# OpenAI text-embedding-3-small dimension (for vector search index)
+KB_EMBEDDING_DIM = 1536
+
 
 async def ensure_indexes():
     try:
         await messages_col.create_index("conversation_id")
         await conversations_col.create_index([("updated_at", -1)])
         await saved_quotes_col.create_index([("created_at", -1)])
+    except Exception:
+        pass
+
+
+async def ensure_kb_indexes():
+    """Create indexes for knowledge_bases and kb_chunks, including vector search on kb_chunks.embedding."""
+    try:
+        await knowledge_bases_col.create_index("normalized_vendor_name", unique=True)
+    except Exception:
+        pass
+    try:
+        await kb_chunks_col.create_index("kb_id")
+        await kb_chunks_col.create_index([("kb_id", 1), ("source_filename", 1)])
+    except Exception:
+        pass
+    # Vector search index for $vectorSearch (MongoDB 8.2+)
+    try:
+        from pymongo.operations import SearchIndexModel
+
+        model = SearchIndexModel(
+            definition={
+                "fields": [
+                    {
+                        "type": "vector",
+                        "path": "embedding",
+                        "numDimensions": KB_EMBEDDING_DIM,
+                        "similarity": "cosine",
+                    },
+                    {"type": "filter", "path": "kb_id"},
+                ]
+            },
+            name="kb_chunks_vector",
+            type="vectorSearch",
+        )
+        await kb_chunks_col.create_search_index(model=model)
     except Exception:
         pass
 

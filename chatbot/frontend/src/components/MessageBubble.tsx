@@ -18,6 +18,7 @@ const TOOL_LABELS: Record<string, string> = {
   get_spectrochem_product_details: 'Spectrochem Details',
   search_glosil: 'Search Glosil',
   get_glosil_product_details: 'Glosil Details',
+  search_science_house: 'Search Science House',
   search_tci: 'Search TCI',
   get_tci_product_details: 'TCI Details',
 };
@@ -42,8 +43,16 @@ function extractToolOutput(raw: string): string {
   return raw;
 }
 
+/** Treat as error only when the output clearly indicates failure (e.g. starts with "Error:", "Failed"), not when "error" or "failed" appear inside success content (e.g. KB chunks). */
 function isErrorResult(text: string): boolean {
-  return /error|failed|certificate|timeout|connection refused/i.test(text);
+  const t = text.trim();
+  const firstLine = t.split(/\r?\n/)[0] ?? '';
+  return (
+    /^(Error:|Failed to|Failed:)/i.test(firstLine) ||
+    /^(Request timed out|Connection refused|Connection reset)/i.test(firstLine) ||
+    /(certificate (invalid|expired|error)|SSL|TLS)/i.test(firstLine) ||
+    /^The .+ knowledge base is not set up/i.test(firstLine)
+  );
 }
 
 function formatTokenCount(n: number): string {

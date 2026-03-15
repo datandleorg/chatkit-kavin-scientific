@@ -76,6 +76,7 @@ export async function streamChat(
   callbacks?: StreamCallbacks,
   model?: string | null,
   reasoning?: boolean,
+  kbIds?: string[],
 ) {
   void _history;
   const { onToken, onThinking, onSummarizing, onExtracting, onFileExtracted, onToolStart, onToolEnd, onTableData, onConversationId, onUsage, onDone, onError } = callbacks ?? {};
@@ -89,6 +90,9 @@ export async function streamChat(
     formData.append('reasoning', useReasoning ? 'true' : 'false');
     if (files) {
       files.forEach((f) => formData.append('files', f));
+    }
+    if (kbIds && kbIds.length > 0) {
+      formData.append('kb_ids', JSON.stringify(kbIds));
     }
 
     const url = `${BASE_URL}/chat/stream?reasoning=${useReasoning ? 'true' : 'false'}`;
@@ -319,5 +323,112 @@ export async function exportQuoteXlsx(
 
   if (!res.ok) throw new Error(`Export quote failed: ${res.status}`);
   return res.blob();
+}
+
+// --- Knowledge Base ---
+
+export interface KnowledgeBaseItem {
+  id: string;
+  vendor_name: string;
+}
+
+export interface KbDocumentItem {
+  source_filename: string;
+  chunk_count: number;
+}
+
+export interface IngestProgressEvent {
+  stage: 'chunking' | 'chunking_done' | 'embedding' | 'done' | 'error';
+  file?: string;
+  detail?: string;
+  chunks?: number;
+  current?: number;
+  total?: number;
+  chunks_added?: number;
+  message?: string;
+}
+
+export async function listKnowledgeBases(): Promise<KnowledgeBaseItem[]> {
+  const res = await fetch(`${BASE_URL}/knowledge-bases`);
+  if (!res.ok) throw new Error('Failed to fetch knowledge bases');
+  return res.json();
+}
+
+export async function checkKnowledgeBase(vendorName: string): Promise<{ exists: boolean; id: string | null }> {
+  const res = await fetch(`${BASE_URL}/knowledge-bases/check?vendor_name=${encodeURIComponent(vendorName)}`);
+  if (!res.ok) throw new Error('Check failed');
+  return res.json();
+}
+
+export async function createKnowledgeBase(vendorName: string): Promise<KnowledgeBaseItem> {
+  const res = await fetch(`${BASE_URL}/knowledge-bases`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ vendor_name: vendorName }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    if (res.status === 409) throw new Error(err.id ? `Vendor already exists (ID: ${err.id})` : 'Vendor already exists');
+    throw new Error('Failed to create knowledge base');
+  }
+  return res.json();
+}
+
+export async function getKbDocuments(kbId: string): Promise<KbDocumentItem[]> {
+  const res = await fetch(`${BASE_URL}/knowledge-bases/${kbId}/documents`);
+  if (!res.ok) throw new Error('Failed to fetch documents');
+  return res.json();
+}
+
+export async function ingestKbDocuments(
+  kbId: string,
+  files: File[],
+  onProgress: (event: IngestProgressEvent) => void,
+): Promise<void> {
+  const formData = new FormData();
+  files.forEach((f) => formData.append('files', f));
+  const res = await fetch(`${BASE_URL}/knowledge-bases/${kbId}/ingest`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!res.ok) throw new Error('Ingest failed');
+  const reader = res.body?.getReader();
+  if (!reader) throw new Error('No response body');
+  const decoder = new TextDecoder();
+  let buffer = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        const data = line.slice(6).trim();
+        try {
+          const parsed = JSON.parse(data) as IngestProgressEvent;
+          onProgress(parsed);
+          if (parsed.stage === 'error') throw new Error(parsed.message || 'Ingest error');
+        } catch (e) {
+          if (e instanceof Error && e.message !== 'Ingest error' && !e.message.includes('JSON')) throw e;
+        }
+      }
+    }
+  }
+}
+
+export async function removeKbDocuments(kbId: string, sourceFilenames: string[]): Promise<{ removed: number; chunks_deleted: number }> {
+  const res = await fetch(`${BASE_URL}/knowledge-bases/${kbId}/documents`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ source_filenames: sourceFilenames }),
+  });
+  if (!res.ok) throw new Error('Failed to remove documents');
+  return res.json();
+}
+
+export async function deleteKnowledgeBase(kbId: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}/knowledge-bases/${kbId}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error('Failed to delete knowledge base');
 }
 
