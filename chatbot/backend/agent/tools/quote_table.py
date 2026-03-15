@@ -3,7 +3,7 @@ from langchain_core.tools import tool
 
 
 @tool
-def prepare_quote_table(products: list[dict]) -> str:
+def prepare_quote_table(products: list[dict], file_name: str = "") -> str:
     """Render an editable procurement quote table in the UI.
 
     Call this AFTER gathering product details from vendors. Include ALL matching products from your search results — do not omit or limit to a subset.
@@ -18,6 +18,8 @@ def prepare_quote_table(products: list[dict]) -> str:
       - qty: int           (quantity, default 1)
       - gst_percent: float (GST percentage, e.g. 18)
       - source_url: str    (vendor page URL for citation)
+
+    Optional file_name: suggest a short, descriptive filename for the quote export (e.g. "Lab_chemicals_quote", "Formic_acid_vendors"). Based on the products or user request. Omit .xlsx; it will be added. If empty, a default name is used.
     """
     if not products:
         return json.dumps([])

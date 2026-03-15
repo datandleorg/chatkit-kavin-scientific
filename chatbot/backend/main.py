@@ -879,15 +879,25 @@ async def chat_stream(
                             saved_blocks[:] = [b for b in saved_blocks if not (b.get("type") == "tool" and b.get("toolCall", {}).get("name") == "prepare_quote_table")]
                             saved_blocks.append({"type": "table", "rows": rows})
                             logger.info("  Quote table generated: %d rows", len(rows))
+                            tool_input = event.get("data", {}).get("input", {}) or {}
+                            suggested = (tool_input.get("file_name") or "").strip()
+                            if suggested:
+                                export_name = _sanitize_filename(suggested)
+                                if not export_name or export_name == "file":
+                                    export_name = "quote"
+                            else:
+                                export_name = "quote"
+                            if not export_name.endswith(".xlsx"):
+                                export_name = f"{export_name}.xlsx"
                             try:
                                 prompt_stored = effective_message[:2000] if len(effective_message) > 2000 else effective_message
                                 await db_service.save_quote(
                                     conv_id,
-                                    "quote.xlsx",
+                                    export_name,
                                     rows,
                                     message_prompt=prompt_stored,
                                 )
-                                logger.info("  Quote auto-saved to DB (conv=%s)", conv_id[:8])
+                                logger.info("  Quote auto-saved to DB (conv=%s, file=%s)", conv_id[:8], export_name)
                             except Exception as save_err:
                                 logger.warning("  Quote auto-save failed: %s", save_err)
                             yield f"data: {json.dumps({'table_data': {'rows': rows, 'run_id': run_id}})}\n\n"

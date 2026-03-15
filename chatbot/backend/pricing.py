@@ -3,6 +3,8 @@
 import json
 from pathlib import Path
 
+from config import PREMIUM_PERCENT
+
 PRICING_PATH = Path(__file__).parent / "model_pricing.json"
 _pricing_data: dict | None = None
 
@@ -61,19 +63,16 @@ def compute_cost(
 ) -> float:
     """
     Compute cost in USD from token counts and model pricing.
-    All rates are per million tokens (USD per mtok): cost = tokens * (rate / 1_000_000).
-    - input_tokens × input_usd_per_mtok
-    - output_tokens × output_usd_per_mtok (or extended_thinking_usd_per_mtok if use_reasoning)
-    - cache_tokens × cache_read_usd_per_mtok
-    - Optional: premium_per_mtok (USD per million tokens) applied to total tokens.
+    All rates are per million tokens (USD per mtok). Then PREMIUM_PERCENT from env
+    is applied on top of model cost (e.g. 10 = 10% markup).
     """
     pricing = get_pricing_for_model(model_id)
     premium_per_mtok = get_premium_per_million_tokens()
     total_tokens = input_tokens + output_tokens + cache_tokens
-    premium_cost = total_tokens * (premium_per_mtok / 1_000_000)
+    flat_premium = total_tokens * (premium_per_mtok / 1_000_000)
 
     if not pricing:
-        return round(premium_cost, 6)
+        return round(flat_premium, 6)
 
     input_cost = input_tokens * (pricing["input_usd_per_mtok"] / 1_000_000)
     output_rate = (
@@ -81,4 +80,6 @@ def compute_cost(
     ) if use_reasoning else pricing["output_usd_per_mtok"]
     output_cost = output_tokens * (output_rate / 1_000_000)
     cache_cost = cache_tokens * (pricing["cache_read_usd_per_mtok"] / 1_000_000)
-    return round(input_cost + output_cost + cache_cost + premium_cost, 6)
+    model_cost = input_cost + output_cost + cache_cost
+    premium_cost = model_cost * (PREMIUM_PERCENT / 100.0)
+    return round(model_cost + premium_cost + flat_premium, 6)

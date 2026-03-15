@@ -26,3 +26,6 @@ ALLOWED_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".webp", ".gif"}
 
 MONGODB_URI = os.getenv("MONGODB_CONNECTION_STRING", os.getenv("MONGODB_URI", "mongodb://localhost:27017"))
 MONGODB_DB = os.getenv("MONGODB_DB", "kavin_scientific")
+
+# Premium on top of model token cost: PREMIUM_PERCENT (e.g. 10 = 10% markup). Default 0.
+PREMIUM_PERCENT = max(0.0, min(100.0, float(os.getenv("PREMIUM_PERCENT", "0"))))
