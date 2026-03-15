@@ -1,8 +1,8 @@
-import { User, Bot, Search, CheckCircle2, ChevronDown, ChevronRight, AlertCircle, Brain, Loader2, FileText, Paperclip, ScanText, Image } from 'lucide-react';
+import { User, Bot, Search, CheckCircle2, ChevronDown, ChevronRight, AlertCircle, Brain, Loader2, FileText, Paperclip, ScanText, Image, Info, Copy, Check } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Message, ToolCall, ContentBlock, QuoteRow } from '../types';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import QuoteTable from './QuoteTable';
 
 interface MessageBubbleProps {
@@ -44,6 +44,12 @@ function extractToolOutput(raw: string): string {
 
 function isErrorResult(text: string): boolean {
   return /error|failed|certificate|timeout|connection refused/i.test(text);
+}
+
+function formatTokenCount(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return String(n);
 }
 
 function ToolCallChip({ toolCall }: { toolCall: ToolCall }) {
@@ -227,13 +233,70 @@ function ToolGroup({ blocks }: { blocks: ContentBlock[] }) {
 export default function MessageBubble({ message, isStreaming, conversationId }: MessageBubbleProps) {
   const isUser = message.role === 'user';
   const blocks = message.blocks;
+  const [copied, setCopied] = useState(false);
+  const [showExtractionTooltip, setShowExtractionTooltip] = useState(false);
+
+  /** Copy only the message body text (no usage/cost/metadata). */
+  const getMessageBodyText = useCallback((): string => {
+    if (message.content && message.content.trim()) return message.content.trim();
+    const blocks = message.blocks ?? [];
+    const textParts = blocks
+      .filter((b): b is ContentBlock & { type: 'text' } => b.type === 'text')
+      .map((b) => b.text)
+      .filter(Boolean);
+    return textParts.join('\n\n') || '';
+  }, [message.content, message.blocks]);
+
+  const copyContent = useCallback(() => {
+    const text = getMessageBodyText();
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, [getMessageBodyText]);
 
   if (isUser) {
     const attachments = message.attachments;
+    const fileBlocks = (message.blocks || []).filter((b): b is ContentBlock & { type: 'file' } => b.type === 'file');
+    const uploadsBase = import.meta.env.VITE_API_URL || '/api';
     return (
       <div className="flex gap-3 animate-fade-in justify-end">
         <div className="flex flex-col gap-2 max-w-[80%] min-w-0 items-end">
-          {attachments && attachments.length > 0 && (
+          {fileBlocks.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5 justify-end">
+              {fileBlocks.map((block, i) => {
+                const ext = (block.filename || '').split('.').pop()?.toLowerCase() ?? '';
+                const isImg = ['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext);
+                const url = `${uploadsBase}/uploads/${block.path}`;
+                return isImg ? (
+                  <a
+                    key={i}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block rounded-lg overflow-hidden border border-[var(--color-border)]
+                               max-w-[120px] max-h-[120px] hover:opacity-90 transition-opacity"
+                  >
+                    <img src={url} alt={block.filename} className="w-full h-full object-cover max-w-[120px] max-h-[120px]" />
+                  </a>
+                ) : (
+                  <a
+                    key={i}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs
+                               bg-[var(--color-accent)]/10 text-[var(--color-accent)]
+                               border border-[var(--color-accent)]/20 hover:opacity-90"
+                  >
+                    <FileText size={12} />
+                    <span className="max-w-[150px] truncate">{block.filename}</span>
+                  </a>
+                );
+              })}
+            </div>
+          ) : attachments && attachments.length > 0 ? (
             <div className="flex flex-wrap gap-1 justify-end">
               {attachments.map((name, i) => {
                 const ext = name.split('.').pop()?.toLowerCase() ?? '';
@@ -248,10 +311,21 @@ export default function MessageBubble({ message, isStreaming, conversationId }: 
                 );
               })}
             </div>
-          )}
+          ) : null}
           <div className="px-4 py-2.5 rounded-2xl text-sm leading-relaxed min-w-0
                           bg-[var(--color-user-bubble)] text-[var(--color-user-bubble-fg)] rounded-br-md">
             <span className="whitespace-pre-wrap">{message.content}</span>
+          </div>
+          <div className="flex items-center justify-end">
+            <button
+              type="button"
+              onClick={copyContent}
+              className="p-1 rounded text-[var(--color-fg-muted)] hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-fg)] transition-colors"
+              title="Copy message text"
+              aria-label="Copy message text"
+            >
+              {copied ? <Check size={14} /> : <Copy size={14} />}
+            </button>
           </div>
         </div>
         <div className="flex items-start pt-1 shrink-0">
@@ -262,6 +336,86 @@ export default function MessageBubble({ message, isStreaming, conversationId }: 
       </div>
     );
   }
+
+  const hasUsageDetails =
+    message.usage ||
+    message.extraction_usage ||
+    (message.cost_usd != null && message.cost_usd > 0);
+
+  const usageTooltipContent = hasUsageDetails ? (
+      <div className="text-xs min-w-[200px]">
+        {message.usage && (
+          <div className="mb-2">
+            <div className="font-medium text-[var(--color-fg-muted)] mb-0.5">Chat</div>
+            <div className="flex flex-col gap-0.5 text-[var(--color-fg)]">
+              <div>Total: {formatTokenCount(message.usage.total_tokens)} tokens</div>
+              <div className="text-[var(--color-fg-muted)]">
+                In {formatTokenCount(message.usage.input_tokens)} · Out {formatTokenCount(message.usage.output_tokens)}
+                {message.usage.cache_tokens ? ` · Cache ${formatTokenCount(message.usage.cache_tokens)}` : ''}
+              </div>
+            </div>
+          </div>
+        )}
+        {message.extraction_usage && (
+          <div className="mb-2">
+            <div className="font-medium text-[var(--color-fg-muted)] mb-0.5">Image extraction</div>
+            <div className="flex flex-col gap-0.5 text-[var(--color-fg)]">
+              <div>Total: {formatTokenCount(message.extraction_usage.total_tokens)} tokens</div>
+              <div className="text-[var(--color-fg-muted)]">
+                In {formatTokenCount(message.extraction_usage.input_tokens)} · Out {formatTokenCount(message.extraction_usage.output_tokens)}
+                {message.extraction_usage.cache_tokens ? ` · Cache ${formatTokenCount(message.extraction_usage.cache_tokens)}` : ''}
+              </div>
+            </div>
+          </div>
+        )}
+        {message.cost_usd != null && message.cost_usd > 0 && (
+          <div className="pt-1.5 border-t border-[var(--color-border)]">
+            <div className="font-medium text-[var(--color-fg-muted)] mb-0.5">Cost</div>
+            <div className="text-[var(--color-fg)] flex flex-col gap-0.5">
+              <span>${message.cost_usd.toFixed(4)} USD</span>
+              {message.cost_inr != null && <span>₹{message.cost_inr.toLocaleString('en-IN')} INR</span>}
+            </div>
+          </div>
+        )}
+      </div>
+    ) : null;
+
+  const copyButton = (
+    <button
+      type="button"
+      onClick={copyContent}
+      className="p-1 rounded text-[var(--color-fg-muted)] hover:bg-[var(--color-bg-tertiary)] hover:text-[var(--color-fg)] transition-colors"
+      title="Copy message text"
+      aria-label="Copy message text"
+    >
+      {copied ? <Check size={14} /> : <Copy size={14} />}
+    </button>
+  );
+
+  const usageFooter =
+    message.role === 'assistant' && hasUsageDetails ? (
+      <div className="text-xs text-[var(--color-fg-muted)] mt-1 flex items-center gap-2 flex-wrap">
+        <span
+          className="relative inline-flex"
+          onMouseEnter={() => setShowExtractionTooltip(true)}
+          onMouseLeave={() => setShowExtractionTooltip(false)}
+        >
+          <Info size={14} className="shrink-0 cursor-help" aria-label="Usage details" />
+          {showExtractionTooltip && usageTooltipContent && (
+            <div
+              className="absolute bottom-full left-0 mb-1 px-3 py-2.5 rounded-lg border border-[var(--color-border)]
+                bg-[var(--color-bg)] text-[var(--color-fg)] shadow-lg z-50"
+              role="tooltip"
+            >
+              {usageTooltipContent}
+            </div>
+          )}
+        </span>
+        {copyButton}
+      </div>
+    ) : message.role === 'assistant' ? (
+      <div className="mt-1 flex items-center gap-1">{copyButton}</div>
+    ) : null;
 
   if (!blocks || blocks.length === 0) {
     if (!message.content && !isStreaming) return null;
@@ -274,6 +428,7 @@ export default function MessageBubble({ message, isStreaming, conversationId }: 
         </div>
         <div className="flex flex-col gap-2 max-w-[80%] min-w-0">
           <TextBlock text={message.content} isLast isStreaming={!!isStreaming} />
+          {usageFooter}
         </div>
       </div>
     );
@@ -366,6 +521,7 @@ export default function MessageBubble({ message, isStreaming, conversationId }: 
             <span className="inline-block w-1.5 h-4 bg-[var(--color-fg-muted)] rounded-sm animate-pulse" />
           </div>
         )}
+        {usageFooter}
       </div>
     </div>
   );

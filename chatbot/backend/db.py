@@ -86,7 +86,8 @@ async def add_message(
     role: str,
     content: str,
     blocks: list[dict[str, Any]] | None = None,
-    usage: dict[str, int] | None = None,
+    usage: dict[str, Any] | None = None,
+    extraction_usage: dict[str, Any] | None = None,
 ) -> dict:
     doc = {
         "_id": str(uuid.uuid4()),
@@ -98,9 +99,28 @@ async def add_message(
     }
     if usage:
         doc["usage"] = {k: v for k, v in usage.items() if v is not None}
+    if extraction_usage:
+        doc["extraction_usage"] = {k: v for k, v in extraction_usage.items() if v is not None}
     await messages_col.insert_one(doc)
     await touch_conversation(conversation_id)
     return doc
+
+
+async def update_message(
+    message_id: str,
+    *,
+    blocks: list[dict[str, Any]] | None = None,
+    attachments: list[str] | None = None,
+) -> None:
+    """Update a message with blocks and/or attachments (e.g. after saving uploaded files)."""
+    update: dict[str, Any] = {}
+    if blocks is not None:
+        update["blocks"] = blocks
+    if attachments is not None:
+        update["attachments"] = attachments
+    if not update:
+        return
+    await messages_col.update_one({"_id": message_id}, {"$set": update})
 
 
 async def get_messages(conversation_id: str) -> list[dict]:
@@ -117,8 +137,12 @@ async def get_messages(conversation_id: str) -> list[dict]:
             "blocks": doc.get("blocks", []),
             "created_at": doc["created_at"].isoformat() if isinstance(doc["created_at"], datetime) else doc["created_at"],
         }
+        if doc.get("attachments"):
+            out["attachments"] = doc["attachments"]
         if "usage" in doc and doc["usage"]:
             out["usage"] = doc["usage"]
+        if "extraction_usage" in doc and doc["extraction_usage"]:
+            out["extraction_usage"] = doc["extraction_usage"]
         results.append(out)
     return results
 
@@ -167,39 +191,108 @@ async def get_usage_aggregates() -> dict:
             "cache_tokens": doc.get("cache_tokens", 0),
             "message_count": doc.get("message_count", 0),
         })
-    totals = {
-        "input_tokens": sum(d["input_tokens"] for d in by_day),
-        "output_tokens": sum(d["output_tokens"] for d in by_day),
-        "total_tokens": sum(d["total_tokens"] for d in by_day),
-        "cache_tokens": sum(d["cache_tokens"] for d in by_day),
-    }
 
-    # Aggregate by use_reasoning for pricing (extended thinking vs normal output)
-    pipeline_reasoning = [
-        {"$match": {"usage": {"$exists": True}, "usage.input_tokens": {"$exists": True}, "usage.use_reasoning": True}},
-        {"$group": {"_id": None, "input_tokens": {"$sum": "$usage.input_tokens"}, "output_tokens": {"$sum": "$usage.output_tokens"}, "total_tokens": {"$sum": "$usage.total_tokens"}, "cache_tokens": {"$sum": "$usage.cache_tokens"}}},
+    # usage_by_model: one row per (model_id, use_reasoning) from both usage and extraction_usage
+    pipeline_by_model = [
+        {
+            "$match": {
+                "$or": [
+                    {"usage.input_tokens": {"$exists": True}},
+                    {"extraction_usage.input_tokens": {"$exists": True}},
+                ]
+            }
+        },
+        {
+            "$project": {
+                "rows": {
+                    "$concatArrays": [
+                        {
+                            "$cond": [
+                                {"$and": [{"$gt": [{"$ifNull": ["$usage.input_tokens", 0]}, 0]}]},
+                                [
+                                    {
+                                        "model_id": {"$ifNull": ["$usage.model_id", "default"]},
+                                        "use_reasoning": {"$ifNull": ["$usage.use_reasoning", False]},
+                                        "input_tokens": "$usage.input_tokens",
+                                        "output_tokens": "$usage.output_tokens",
+                                        "total_tokens": "$usage.total_tokens",
+                                        "cache_tokens": {"$ifNull": ["$usage.cache_tokens", 0]},
+                                    }
+                                ],
+                                [],
+                            ]
+                        },
+                        {
+                            "$cond": [
+                                {"$and": [{"$gt": [{"$ifNull": ["$extraction_usage.input_tokens", 0]}, 0]}]},
+                                [
+                                    {
+                                        "model_id": {"$ifNull": ["$extraction_usage.model_id", "default"]},
+                                        "use_reasoning": {"$ifNull": ["$extraction_usage.use_reasoning", False]},
+                                        "input_tokens": "$extraction_usage.input_tokens",
+                                        "output_tokens": "$extraction_usage.output_tokens",
+                                        "total_tokens": "$extraction_usage.total_tokens",
+                                        "cache_tokens": {"$ifNull": ["$extraction_usage.cache_tokens", 0]},
+                                    }
+                                ],
+                                [],
+                            ]
+                        },
+                    ]
+                }
+            }
+        },
+        {"$unwind": "$rows"},
+        {
+            "$group": {
+                "_id": {"model_id": "$rows.model_id", "use_reasoning": "$rows.use_reasoning"},
+                "input_tokens": {"$sum": "$rows.input_tokens"},
+                "output_tokens": {"$sum": "$rows.output_tokens"},
+                "total_tokens": {"$sum": "$rows.total_tokens"},
+                "cache_tokens": {"$sum": "$rows.cache_tokens"},
+            }
+        },
+        {
+            "$project": {
+                "_id": 0,
+                "model_id": "$_id.model_id",
+                "use_reasoning": "$_id.use_reasoning",
+                "input_tokens": 1,
+                "output_tokens": 1,
+                "total_tokens": 1,
+                "cache_tokens": 1,
+            }
+        },
     ]
-    pipeline_no_reasoning = [
-        {"$match": {"usage": {"$exists": True}, "usage.input_tokens": {"$exists": True}, "$or": [{"usage.use_reasoning": {"$ne": True}}, {"usage.use_reasoning": {"$exists": False}}]}},
-        {"$group": {"_id": None, "input_tokens": {"$sum": "$usage.input_tokens"}, "output_tokens": {"$sum": "$usage.output_tokens"}, "total_tokens": {"$sum": "$usage.total_tokens"}, "cache_tokens": {"$sum": "$usage.cache_tokens"}}},
-    ]
-    cursor_reasoning = messages_col.aggregate(pipeline_reasoning)
-    cursor_no_reasoning = messages_col.aggregate(pipeline_no_reasoning)
-    doc_reasoning = await cursor_reasoning.to_list(length=1)
-    doc_no_reasoning = await cursor_no_reasoning.to_list(length=1)
-    r = doc_reasoning[0] if doc_reasoning else {}
-    nr = doc_no_reasoning[0] if doc_no_reasoning else {}
+    cursor_by_model = messages_col.aggregate(pipeline_by_model)
+    usage_by_model = []
+    async for doc in cursor_by_model:
+        usage_by_model.append({
+            "model_id": doc.get("model_id", "default"),
+            "use_reasoning": doc.get("use_reasoning", False),
+            "input_tokens": doc.get("input_tokens", 0),
+            "output_tokens": doc.get("output_tokens", 0),
+            "total_tokens": doc.get("total_tokens", 0),
+            "cache_tokens": doc.get("cache_tokens", 0),
+        })
+
+    totals = {
+        "input_tokens": sum(d["input_tokens"] for d in usage_by_model),
+        "output_tokens": sum(d["output_tokens"] for d in usage_by_model),
+        "total_tokens": sum(d["total_tokens"] for d in usage_by_model),
+        "cache_tokens": sum(d["cache_tokens"] for d in usage_by_model),
+    }
     totals_with_reasoning = {
-        "input_tokens": r.get("input_tokens", 0),
-        "output_tokens": r.get("output_tokens", 0),
-        "total_tokens": r.get("total_tokens", 0),
-        "cache_tokens": r.get("cache_tokens", 0),
+        "input_tokens": sum(d["input_tokens"] for d in usage_by_model if d["use_reasoning"]),
+        "output_tokens": sum(d["output_tokens"] for d in usage_by_model if d["use_reasoning"]),
+        "total_tokens": sum(d["total_tokens"] for d in usage_by_model if d["use_reasoning"]),
+        "cache_tokens": sum(d["cache_tokens"] for d in usage_by_model if d["use_reasoning"]),
     }
     totals_without_reasoning = {
-        "input_tokens": nr.get("input_tokens", 0),
-        "output_tokens": nr.get("output_tokens", 0),
-        "total_tokens": nr.get("total_tokens", 0),
-        "cache_tokens": nr.get("cache_tokens", 0),
+        "input_tokens": sum(d["input_tokens"] for d in usage_by_model if not d["use_reasoning"]),
+        "output_tokens": sum(d["output_tokens"] for d in usage_by_model if not d["use_reasoning"]),
+        "total_tokens": sum(d["total_tokens"] for d in usage_by_model if not d["use_reasoning"]),
+        "cache_tokens": sum(d["cache_tokens"] for d in usage_by_model if not d["use_reasoning"]),
     }
 
     by_tool_calls = await _aggregate_tool_calls()
@@ -209,6 +302,7 @@ async def get_usage_aggregates() -> dict:
         "totals_without_reasoning": totals_without_reasoning,
         "by_day": by_day,
         "by_tool_calls": by_tool_calls,
+        "usage_by_model": usage_by_model,
     }
 
 

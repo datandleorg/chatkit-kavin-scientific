@@ -65,6 +65,11 @@ export function useChat() {
         content: m.content || '',
         timestamp: new Date(m.timestamp || Date.now()),
         blocks: m.blocks && m.blocks.length > 0 ? m.blocks : undefined,
+        attachments: m.attachments,
+        usage: m.usage,
+        extraction_usage: m.extraction_usage,
+        cost_usd: m.cost_usd,
+        cost_inr: m.cost_inr,
       }));
       setMessages(mapped);
       setConversationId(convId);
@@ -223,6 +228,16 @@ export function useChat() {
             );
             return { ...msg, blocks: [...blocks, tableBlock] };
           });
+        },
+        onUsage: (event) => {
+          if (abortRef.current) return;
+          updateLastAssistant((msg) => ({
+            ...msg,
+            usage: event.usage ?? undefined,
+            extraction_usage: event.extraction_usage ?? undefined,
+            cost_usd: event.cost_usd,
+            cost_inr: event.cost_inr,
+          }));
         },
         onDone: () => setIsStreaming(false),
         onError: (error) => {

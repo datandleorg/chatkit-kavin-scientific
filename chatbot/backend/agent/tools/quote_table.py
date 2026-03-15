@@ -6,7 +6,7 @@ from langchain_core.tools import tool
 def prepare_quote_table(products: list[dict]) -> str:
     """Render an editable procurement quote table in the UI.
 
-    Call this AFTER gathering product details from vendors instead of writing a markdown table.
+    Call this AFTER gathering product details from vendors. Include ALL matching products from your search results — do not omit or limit to a subset.
     Each item in products should have these fields (use empty string or 0 for missing values):
       - name: str          (product name)
       - catalog_no: str    (catalog / product code)

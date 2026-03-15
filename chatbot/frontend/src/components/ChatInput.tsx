@@ -10,6 +10,9 @@ interface ChatInputProps {
   /** When provided with onReasoningChange, the reasoning toggle is controlled by the parent. */
   reasoning?: boolean;
   onReasoningChange?: (value: boolean) => void;
+  /** When provided with onModelChange, the model selector is controlled by the parent (ensures correct model_id is sent). */
+  model?: string;
+  onModelChange?: (modelId: string) => void;
 }
 
 const ACCEPTED_TYPES = new Set([
@@ -30,9 +33,11 @@ function fileIcon(name: string) {
   return <FileText size={12} />;
 }
 
-export default function ChatInput({ onSend, onStop, disabled, reasoning: reasoningProp, onReasoningChange }: ChatInputProps) {
+export default function ChatInput({ onSend, onStop, disabled, reasoning: reasoningProp, onReasoningChange, model: modelProp, onModelChange }: ChatInputProps) {
   const [text, setText] = useState('');
-  const [model, setModel] = useState('claude-sonnet-4-20250514');
+  const [internalModel, setInternalModel] = useState('gpt-5-mini');
+  const model = modelProp ?? internalModel;
+  const setModel = onModelChange ?? setInternalModel;
   const [internalReasoning, setInternalReasoning] = useState(false);
   const reasoning = reasoningProp !== undefined ? reasoningProp : internalReasoning;
   const setReasoning = onReasoningChange ?? setInternalReasoning;

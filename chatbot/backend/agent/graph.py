@@ -1,9 +1,10 @@
 from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
 from langchain_anthropic import ChatAnthropic
+from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage
 
-from config import ANTHROPIC_API_KEY, CLAUDE_MODEL
+from config import ANTHROPIC_API_KEY, CLAUDE_MODEL, OPENAI_API_KEY, OPENAI_BASE_URL
 from agent.state import ChatState, WorkflowState
 from agent.tools import ALL_TOOLS
 
@@ -22,19 +23,25 @@ You have 9 tools — a search tool and a details tool for each vendor, plus a qu
 - search_tci → get_tci_product_details (by product_url)
 - prepare_quote_table → renders an editable procurement table in the UI
 
+## Search terms: spelling and synonyms
+
+Apply these rules to **every** search term you use — whether the user typed it in the chat or the term came from **extracted content** (PDFs, images, or other attached files).
+- **Correct spelling:** If a term has a likely typo or wrong spelling (e.g. "formic acide", "metanol", "acetane"), infer the correct form and use it when calling search tools. Do this for both typed queries and for product names/identifiers read from attached files. You may briefly note the correction in your reply (e.g. "Searching for formic acid.") without making the user feel wrong.
+- **Use synonyms:** When searching, also try common synonyms or alternative names (e.g. "methanol" / "methyl alcohol", "sodium chloride" / "table salt", "HCl" / "hydrochloric acid", "EtOH" / "ethanol"). Run searches with the corrected term and with relevant synonyms so you don’t miss matches. Apply this for terms from the user’s message and for terms extracted from files. Prefer the corrected or canonical form in the quote table and in your summary.
+
 ## Workflow
 
 When a user asks about any product (chemicals, lab equipment, instruments, consumables, or other materials):
-1. First, use the 4 search tools in parallel to find matching products across all vendors.
-2. Then, call the detail tools for the most relevant results to get pricing and stock.
-3. Call prepare_quote_table with the structured product list. DO NOT write a markdown table.
+1. First, correct any obvious spelling and consider synonyms (see above). Then use the 4 search tools in parallel with the corrected term and, when useful, with synonyms to find matching products across all vendors.
+2. Then, call the detail tools for all matching products returned by the search tools (every product you intend to quote). Do not limit to "best" or "top" matches — include every product from the search results so the quote table is complete.
+3. Call prepare_quote_table with the full structured product list (all products for which you fetched details). DO NOT write a markdown table.
    Each product object must have: name, catalog_no, hsn, brand, unit (pack size), rate (price as number, 0 if POR/unknown), discount (default 0), qty (default 1), gst_percent, source_url.
    Extract numeric prices from the tool results (e.g. '₹9,900' → 9900). Use 0 for POR/unknown prices.
 4. After the table tool call, write a brief recommendation as plain text.
 
 ## Task Recitation
 
-Before starting a multi-step task, briefly state your plan (e.g. "I'll search all 4 vendors for [product type], then get details for the best matches, and prepare a quote table."). \
+Before starting a multi-step task, briefly state your plan (e.g. "I'll search all 4 vendors for [product type], get details for all matches, and add them all to the quote table."). \
 After completing a batch of tool calls, briefly summarize what you found before proceeding to the next step. \
 This keeps your goals and progress in focus.
 
@@ -54,7 +61,7 @@ When making multiple similar tool calls (e.g. getting details for several produc
 Every tool result includes a **Source:** field with a URL. Include source_url in each row passed to prepare_quote_table. \
 In your recommendation text, mention vendor names as markdown links.
 
-Be concise and helpful. If the user uploads files, extracted product names or identifiers (e.g. chemicals, equipment) are provided in context."""
+Be concise and helpful. If the user uploads files, extracted product names or identifiers (e.g. chemicals, equipment) are provided in context. When you search based on that extracted content, apply the same spelling correction and synonym search rules above."""
 
 
 def _build_chat_graph() -> StateGraph:
@@ -65,18 +72,31 @@ def _build_chat_graph() -> StateGraph:
         messages = list(state["messages"])
         model_id = state.get("model_id") or CLAUDE_MODEL
         use_reasoning = state.get("use_reasoning", False)
-        thinking = (
-            {"type": "enabled", "budget_tokens": 5000}
-            if use_reasoning
-            else {"type": "disabled"}
-        )
-        llm = ChatAnthropic(
-            model=model_id,
-            api_key=ANTHROPIC_API_KEY,
-            max_tokens=16000,
-            streaming=True,
-            thinking=thinking,
-        )
+        is_openai = model_id.startswith("gpt-")
+        if is_openai:
+            kwargs = {
+                "model": model_id,
+                "api_key": OPENAI_API_KEY,
+                "max_tokens": 16000,
+                "streaming": True,
+                "stream_options": {"include_usage": True},
+            }
+            if OPENAI_BASE_URL:
+                kwargs["base_url"] = OPENAI_BASE_URL
+            llm = ChatOpenAI(**kwargs)
+        else:
+            thinking = (
+                {"type": "enabled", "budget_tokens": 5000}
+                if use_reasoning
+                else {"type": "disabled"}
+            )
+            llm = ChatAnthropic(
+                model=model_id,
+                api_key=ANTHROPIC_API_KEY,
+                max_tokens=16000,
+                streaming=True,
+                thinking=thinking,
+            )
         llm_with_tools = llm.bind_tools(ALL_TOOLS)
 
         if not messages or not isinstance(messages[0], SystemMessage):

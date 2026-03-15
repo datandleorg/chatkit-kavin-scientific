@@ -17,6 +17,7 @@ services:
       - mongodb
     environment:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
       HOST: "0.0.0.0"
       PORT: "8000"
       MONGODB_CONNECTION_STRING: mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD:-password123}@mongodb:27017/${MONGODB_DB:-kavin_scientific}?authSource=admin

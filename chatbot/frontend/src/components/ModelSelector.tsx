@@ -1,11 +1,16 @@
 import { ChevronDown } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { getModels, type AllowedModel } from '../lib/api';
 
-const models = [
-  { id: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4.5' },
-  { id: 'claude-3-5-sonnet-20241022', label: 'Claude Sonnet 4' },
-  { id: 'claude-3-5-sonnet-20240620', label: 'Claude Sonnet 4 (Jun 24)' },
-];
+const DEFAULT_MODEL_ID = 'gpt-5-mini';
+
+/** Only OpenAI models are selectable for now; Claude models are excluded. */
+function groupByProvider(models: AllowedModel[]): { group: string; models: { id: string; label: string }[] }[] {
+  const openai = models.filter((m) => m.provider === 'openai');
+  const result: { group: string; models: { id: string; label: string }[] }[] = [];
+  if (openai.length) result.push({ group: 'OpenAI', models: openai.map((m) => ({ id: m.id, label: m.label })) });
+  return result;
+}
 
 interface ModelSelectorProps {
   value: string;
@@ -14,8 +19,31 @@ interface ModelSelectorProps {
 
 export default function ModelSelector({ value, onChange }: ModelSelectorProps) {
   const [open, setOpen] = useState(false);
+  const [modelGroups, setModelGroups] = useState<{ group: string; models: { id: string; label: string }[] }[]>([]);
+  const [loading, setLoading] = useState(true);
   const ref = useRef<HTMLDivElement>(null);
-  const selected = models.find((m) => m.id === value) ?? models[0];
+
+  useEffect(() => {
+    getModels()
+      .then((list) => {
+        setModelGroups(groupByProvider(list));
+      })
+      .catch(() => setModelGroups([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (modelGroups.length === 0) return;
+    const models = modelGroups.flatMap((g) => g.models);
+    const ids = new Set(models.map((m) => m.id));
+    if (value && !ids.has(value)) {
+      const defaultId = ids.has(DEFAULT_MODEL_ID) ? DEFAULT_MODEL_ID : models[0]?.id ?? DEFAULT_MODEL_ID;
+      onChange(defaultId);
+    }
+  }, [modelGroups, value, onChange]);
+
+  const models = modelGroups.flatMap((g) => g.models);
+  const selected = models.find((m) => m.id === value) ?? models.find((m) => m.id === DEFAULT_MODEL_ID) ?? models[0];
 
   const close = useCallback(() => setOpen(false), []);
 
@@ -37,6 +65,14 @@ export default function ModelSelector({ value, onChange }: ModelSelectorProps) {
     };
   }, [open, close]);
 
+  if (loading || modelGroups.length === 0) {
+    return (
+      <span className="px-2 py-1 text-xs font-medium text-[var(--color-fg-muted)]">
+        {loading ? '…' : DEFAULT_MODEL_ID}
+      </span>
+    );
+  }
+
   return (
     <div ref={ref} className="relative">
       <button
@@ -46,25 +82,33 @@ export default function ModelSelector({ value, onChange }: ModelSelectorProps) {
                    text-[var(--color-fg-muted)] hover:bg-[var(--color-bg-tertiary)]
                    transition-colors duration-150"
       >
-        {selected.label}
+        {selected?.label ?? value ?? DEFAULT_MODEL_ID}
         <ChevronDown size={12} />
       </button>
       {open && (
-        <div className="absolute bottom-full left-0 mb-1 w-40 py-1 rounded-lg border
+        <div className="absolute bottom-full left-0 mb-1 w-44 py-1 rounded-lg border
                         border-[var(--color-border)] bg-[var(--color-bg)]
-                        shadow-lg z-50 animate-fade-in">
-          {models.map((m) => (
-            <button
-              key={m.id}
-              onClick={() => { onChange(m.id); close(); }}
-              className={`w-full text-left px-3 py-1.5 text-xs transition-colors duration-100
-                ${m.id === value
-                  ? 'text-[var(--color-accent)] bg-[var(--color-bg-secondary)]'
-                  : 'text-[var(--color-fg-muted)] hover:bg-[var(--color-bg-secondary)]'
-                }`}
-            >
-              {m.label}
-            </button>
+                        shadow-lg z-50 animate-fade-in max-h-64 overflow-y-auto">
+          {modelGroups.map(({ group, models: groupModels }) => (
+            <div key={group}>
+              <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wide
+                              text-[var(--color-fg-muted)] border-b border-[var(--color-border)]">
+                {group}
+              </div>
+              {groupModels.map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => { onChange(m.id); close(); }}
+                  className={`w-full text-left px-3 py-1.5 text-xs transition-colors duration-100
+                    ${m.id === value
+                      ? 'text-[var(--color-accent)] bg-[var(--color-bg-secondary)]'
+                      : 'text-[var(--color-fg-muted)] hover:bg-[var(--color-bg-secondary)]'
+                    }`}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
           ))}
         </div>
       )}

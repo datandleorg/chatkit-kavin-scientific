@@ -2,6 +2,18 @@ import type { UploadResponse, ScrapeResponse, ReportResponse, Conversation, Mess
 
 const BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
+export interface AllowedModel {
+  id: string;
+  label: string;
+  provider: string;
+}
+
+export async function getModels(): Promise<AllowedModel[]> {
+  const res = await fetch(`${BASE_URL}/models`);
+  if (!res.ok) throw new Error(`Failed to fetch models: ${res.status}`);
+  return res.json();
+}
+
 export interface ToolStartEvent {
   name: string;
   run_id: string;
@@ -24,6 +36,22 @@ export interface FileExtractedEvent {
   preview: string;
 }
 
+export interface TokenUsage {
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
+  cache_tokens: number;
+  model_id?: string;
+  use_reasoning?: boolean;
+}
+
+export interface StreamUsageEvent {
+  usage: TokenUsage | null;
+  extraction_usage: TokenUsage | null;
+  cost_usd: number;
+  cost_inr?: number;
+}
+
 export interface StreamCallbacks {
   onToken?: (token: string) => void;
   onThinking?: (text: string) => void;
@@ -34,6 +62,7 @@ export interface StreamCallbacks {
   onToolEnd?: (event: ToolEndEvent) => void;
   onTableData?: (event: TableDataEvent) => void;
   onConversationId?: (id: string) => void;
+  onUsage?: (event: StreamUsageEvent) => void;
   onDone?: () => void;
   onError?: (error: string) => void;
 }
@@ -49,7 +78,7 @@ export async function streamChat(
   reasoning?: boolean,
 ) {
   void _history;
-  const { onToken, onThinking, onSummarizing, onExtracting, onFileExtracted, onToolStart, onToolEnd, onTableData, onConversationId, onDone, onError } = callbacks ?? {};
+  const { onToken, onThinking, onSummarizing, onExtracting, onFileExtracted, onToolStart, onToolEnd, onTableData, onConversationId, onUsage, onDone, onError } = callbacks ?? {};
   try {
     const formData = new FormData();
     formData.append('message', message);
@@ -110,6 +139,14 @@ export async function streamChat(
             if (parsed.tool_start) onToolStart?.(parsed.tool_start);
             if (parsed.tool_end) onToolEnd?.(parsed.tool_end);
             if (parsed.table_data) onTableData?.(parsed.table_data);
+            if (parsed.usage !== undefined || parsed.cost_usd !== undefined) {
+              onUsage?.({
+                usage: parsed.usage ?? null,
+                extraction_usage: parsed.extraction_usage ?? null,
+                cost_usd: Number(parsed.cost_usd ?? 0),
+                cost_inr: parsed.cost_inr != null ? Number(parsed.cost_inr) : undefined,
+              });
+            }
             if (parsed.error) onError?.(parsed.error);
           } catch {
             if (data) onToken?.(data);
@@ -180,13 +217,29 @@ export async function createConversation(): Promise<Conversation> {
 export async function fetchMessages(conversationId: string): Promise<Message[]> {
   const res = await fetch(`${BASE_URL}/conversations/${conversationId}/messages`);
   if (!res.ok) throw new Error(`Fetch messages failed: ${res.status}`);
-  const raw: { id: string; role: 'user' | 'assistant'; content: string; blocks?: Message['blocks']; created_at: string }[] = await res.json();
+  const raw: {
+    id: string;
+    role: 'user' | 'assistant';
+    content: string;
+    blocks?: Message['blocks'];
+    created_at: string;
+    attachments?: string[];
+    usage?: Message['usage'];
+    extraction_usage?: Message['extraction_usage'];
+    cost_usd?: number;
+    cost_inr?: number;
+  }[] = await res.json();
   return raw.map((m) => ({
     id: m.id,
     role: m.role,
     content: m.content,
     timestamp: new Date(m.created_at),
     blocks: m.blocks,
+    attachments: m.attachments,
+    usage: m.usage,
+    extraction_usage: m.extraction_usage,
+    cost_usd: m.cost_usd,
+    cost_inr: m.cost_inr,
   }));
 }
 

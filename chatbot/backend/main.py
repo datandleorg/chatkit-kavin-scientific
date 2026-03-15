@@ -26,7 +26,7 @@ from config import (
     ANTHROPIC_API_KEY,
     CLAUDE_MODEL,
 )
-from pricing import compute_cost as compute_usage_cost
+from pricing import compute_cost as compute_usage_cost, get_allowed_models, is_allowed_model
 from agent import chat_graph, run_agent
 from agent.graph import SYSTEM_PROMPT
 from utils.xml_quote_generator import XMLQuoteGenerator
@@ -51,6 +51,18 @@ IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
 PDF_EXTENSIONS = {".pdf"}
 VISION_MODEL = "claude-haiku-4-5-20251001"
 
+
+def _sanitize_filename(name: str) -> str:
+    """Return a safe filename (no path traversal, no empty)."""
+    if not name or not name.strip():
+        return "file"
+    base = Path(name).name.strip()
+    if not base:
+        return "file"
+    allowed = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-")
+    safe = "".join(c if c in allowed else "_" for c in base)
+    return safe[:200] or "file"
+
 EXTRACTION_PROMPT = (
     "Extract ALL text content from this image. It likely contains a product list, "
     "purchase order, or chemical inventory. Return the extracted text exactly as it "
@@ -72,7 +84,36 @@ def _extract_pdf_text(file_bytes: bytes) -> str:
     return result
 
 
-async def _extract_image_text(file_bytes: bytes, media_type: str) -> str:
+def _usage_from_anthropic_response(response) -> dict:
+    """Build usage dict from Anthropic Message response (input_tokens, output_tokens, cache)."""
+    usage = getattr(response, "usage", None)
+    if not usage:
+        return {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0, "cache_tokens": 0}
+    if isinstance(usage, dict):
+        inp = usage.get("input_tokens", 0) or 0
+        out = usage.get("output_tokens", 0) or 0
+        total = usage.get("total_tokens") or (inp + out)
+        details = usage.get("input_token_details") or {}
+        cache = int(details.get("cache_read_input_tokens", 0) or 0) + int(details.get("cache_creation_input_tokens", 0) or 0)
+    else:
+        inp = getattr(usage, "input_tokens", 0) or 0
+        out = getattr(usage, "output_tokens", 0) or 0
+        total = getattr(usage, "total_tokens", None) or (inp + out)
+        details = getattr(usage, "input_token_details", None) or {}
+        if isinstance(details, dict):
+            cache = int(details.get("cache_read_input_tokens", 0) or 0) + int(details.get("cache_creation_input_tokens", 0) or 0)
+        else:
+            cache = int(getattr(details, "cache_read_input_tokens", 0) or 0) + int(getattr(details, "cache_creation_input_tokens", 0) or 0)
+    return {
+        "input_tokens": inp,
+        "output_tokens": out,
+        "total_tokens": total,
+        "cache_tokens": cache,
+    }
+
+
+async def _extract_image_text(file_bytes: bytes, media_type: str) -> tuple[str, dict]:
+    """Extract text from image via vision API. Returns (text, usage_dict)."""
     logger.info("Image extraction: model=%s, media_type=%s, size=%dKB", VISION_MODEL, media_type, len(file_bytes) // 1024)
     client = AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
     b64 = base64.standard_b64encode(file_bytes).decode("utf-8")
@@ -91,8 +132,9 @@ async def _extract_image_text(file_bytes: bytes, media_type: str) -> str:
         }],
     )
     text = response.content[0].text
+    usage_dict = _usage_from_anthropic_response(response)
     logger.info("Image extraction done: %d chars extracted", len(text))
-    return text
+    return text, usage_dict
 
 
 async def _process_uploaded_files(files: list[UploadFile]) -> list[dict]:
@@ -129,6 +171,59 @@ async def _process_uploaded_files(files: list[UploadFile]) -> list[dict]:
             results.append({"filename": f.filename, "text": f"[Extraction failed: {e}]"})
 
     return results
+
+
+async def _process_uploaded_files_from_bytes(
+    files: list[dict],
+) -> tuple[list[dict], dict | None]:
+    """Extract text from in-memory file contents. Each item: {filename, content} (bytes).
+    Returns (list of {filename, text}, extraction_usage or None). extraction_usage is summed over image calls only."""
+    logger.info("Processing %d file(s) from bytes", len(files))
+    results = []
+    extraction_usage: dict = {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "cache_tokens": 0,
+    }
+    for item in files:
+        filename = item.get("filename") or "file"
+        file_bytes = item.get("content") or b""
+        ext = Path(filename).suffix.lower()
+        size_kb = len(file_bytes) // 1024
+
+        if len(file_bytes) > MAX_FILE_SIZE_MB * 1024 * 1024:
+            logger.warning("File too large: %s (%dKB)", filename, size_kb)
+            results.append({"filename": filename, "text": f"[File too large: {filename}]"})
+            continue
+
+        try:
+            if ext in PDF_EXTENSIONS:
+                logger.info("Extracting PDF: %s (%dKB)", filename, size_kb)
+                text = _extract_pdf_text(file_bytes)
+                results.append({"filename": filename, "text": text})
+            elif ext in IMAGE_EXTENSIONS:
+                logger.info("Extracting image: %s (%dKB)", filename, size_kb)
+                mime_map = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+                            ".webp": "image/webp", ".gif": "image/gif"}
+                media_type = mime_map.get(ext, "image/png")
+                text, usage = await _extract_image_text(file_bytes, media_type)
+                results.append({"filename": filename, "text": text})
+                extraction_usage["input_tokens"] += usage.get("input_tokens", 0)
+                extraction_usage["output_tokens"] += usage.get("output_tokens", 0)
+                extraction_usage["total_tokens"] += usage.get("total_tokens", 0)
+                extraction_usage["cache_tokens"] += usage.get("cache_tokens", 0)
+            else:
+                logger.warning("Unsupported file type: %s (%s)", filename, ext)
+                results.append({"filename": filename, "text": f"[Unsupported file type: {ext}]"})
+        except Exception as e:
+            logger.error("Extraction failed for %s: %s", filename, e)
+            results.append({"filename": filename, "text": f"[Extraction failed: {e}]"})
+
+    if extraction_usage["input_tokens"] == 0 and extraction_usage["output_tokens"] == 0:
+        return results, None
+    return results, extraction_usage
+
 
 app = FastAPI(title="Chemical Procurement API")
 
@@ -187,9 +282,38 @@ class ExportQuoteRequest(BaseModel):
     message_prompt: str | None = None
 
 
+DEFAULT_CHAT_MODEL = "gpt-5-mini"
+
+
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+@app.get("/models")
+async def list_models():
+    """Return allowed chat models (id, label, provider) from single source of truth."""
+    return get_allowed_models()
+
+
+@app.get("/uploads/{file_path:path}")
+async def serve_upload(file_path: str):
+    """Serve a stored upload. file_path is relative (e.g. conv_id/msg_id/filename); must stay under UPLOAD_DIR."""
+    if not file_path or ".." in file_path or file_path.startswith("/"):
+        raise HTTPException(400, "Invalid path")
+    resolved = (UPLOAD_DIR / file_path).resolve()
+    try:
+        resolved.relative_to(UPLOAD_DIR.resolve())
+    except ValueError:
+        raise HTTPException(403, "Forbidden")
+    if not resolved.is_file():
+        raise HTTPException(404, "File not found")
+    media_types = {
+        ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+        ".webp": "image/webp", ".gif": "image/gif", ".pdf": "application/pdf",
+    }
+    media_type = media_types.get(resolved.suffix.lower(), "application/octet-stream")
+    return FileResponse(resolved, media_type=media_type)
 
 
 @app.get("/conversations")
@@ -203,12 +327,39 @@ async def create_conversation():
     return {"id": conv["_id"], "title": conv["title"], "updated_at": conv["updated_at"].isoformat()}
 
 
+def _message_cost_usd(msg: dict) -> float:
+    """Compute cost in USD for a message from its usage and extraction_usage (same logic as get_usage)."""
+    cost = 0.0
+    for usage_key in ("usage", "extraction_usage"):
+        u = msg.get(usage_key)
+        if not u:
+            continue
+        model_id = u.get("model_id") or "default"
+        if model_id == "default":
+            model_id = CLAUDE_MODEL
+        cost += compute_usage_cost(
+            u.get("input_tokens", 0),
+            u.get("output_tokens", 0),
+            u.get("cache_tokens", 0),
+            model_id,
+            use_reasoning=u.get("use_reasoning", False),
+        )
+    return round(cost, 6)
+
+
 @app.get("/conversations/{conversation_id}/messages")
 async def get_conversation_messages(conversation_id: str):
     conv = await db_service.get_conversation(conversation_id)
     if not conv:
         raise HTTPException(404, "Conversation not found")
-    return await db_service.get_messages(conversation_id)
+    messages = await db_service.get_messages(conversation_id)
+    rate = await _get_usd_to_inr_rate()
+    for m in messages:
+        if m.get("usage") or m.get("extraction_usage"):
+            m["cost_usd"] = _message_cost_usd(m)
+        if m.get("cost_usd") is not None and rate is not None:
+            m["cost_inr"] = round(m["cost_usd"] * rate, 2)
+    return messages
 
 
 @app.delete("/conversations/{conversation_id}")
@@ -276,15 +427,21 @@ async def _get_usd_to_inr_rate() -> float | None:
 
 @app.get("/usage")
 async def get_usage():
-    """Return token usage aggregates for dashboard (totals, by day, by_tool_calls, cost). Cost uses model_pricing.json and CLAUDE_MODEL; reasoning runs use extended_thinking rate."""
+    """Return token usage aggregates for dashboard (totals, by day, by_tool_calls, cost). Cost is computed per (model_id, use_reasoning) from usage_by_model."""
     data = await db_service.get_usage_aggregates()
-    totals = data["totals"]
-    with_r = data.get("totals_with_reasoning") or {"input_tokens": 0, "output_tokens": 0, "cache_tokens": 0}
-    without_r = data.get("totals_without_reasoning") or {"input_tokens": 0, "output_tokens": 0, "cache_tokens": 0}
-    cost_usd = (
-        compute_usage_cost(with_r.get("input_tokens", 0), with_r.get("output_tokens", 0), with_r.get("cache_tokens", 0), CLAUDE_MODEL, use_reasoning=True)
-        + compute_usage_cost(without_r.get("input_tokens", 0), without_r.get("output_tokens", 0), without_r.get("cache_tokens", 0), CLAUDE_MODEL, use_reasoning=False)
-    )
+    usage_by_model = data.get("usage_by_model") or []
+    cost_usd = 0.0
+    for bucket in usage_by_model:
+        model_id = bucket.get("model_id") or "default"
+        if model_id == "default":
+            model_id = CLAUDE_MODEL
+        cost_usd += compute_usage_cost(
+            bucket.get("input_tokens", 0),
+            bucket.get("output_tokens", 0),
+            bucket.get("cache_tokens", 0),
+            model_id,
+            use_reasoning=bucket.get("use_reasoning", False),
+        )
     data["cost"] = cost_usd
     rate = await _get_usd_to_inr_rate()
     if rate is not None:
@@ -494,7 +651,12 @@ async def chat_stream(
 
     conv_id = conversation_id or ""
     sid = session_id or ""
-    model_id = model.strip() or None
+    raw_model = model.strip() or None
+    if raw_model and not is_allowed_model(raw_model):
+        logger.warning("Chat stream: invalid model %r, falling back to %s", raw_model, DEFAULT_CHAT_MODEL)
+        model_id = DEFAULT_CHAT_MODEL
+    else:
+        model_id = raw_model or DEFAULT_CHAT_MODEL
     reasoning_val = (reasoning_query or reasoning).strip().lower()
     use_reasoning = reasoning_val in ("true", "1", "yes")
     file_names = [f.filename for f in files if f.filename]
@@ -507,7 +669,8 @@ async def chat_stream(
         conv_id = conv["_id"]
         logger.info("Created new conversation: %s", conv_id[:8])
 
-    await db_service.add_message(conv_id, "user", message)
+    user_msg = await db_service.add_message(conv_id, "user", message)
+    user_msg_id = user_msg["_id"]
 
     context = ""
     if sid and sid in sessions:
@@ -559,16 +722,52 @@ async def chat_stream(
             pending_text.clear()
 
     tool_call_count = 0
+    extraction_usage_for_turn: dict | None = None
 
     async def generate():
-        nonlocal messages, effective_message, tool_call_count
+        nonlocal messages, effective_message, tool_call_count, extraction_usage_for_turn
         try:
             yield f"data: {json.dumps({'conversation_id': conv_id})}\n\n"
 
             if uploaded_files:
-                logger.info("Starting file extraction for %d file(s)", len(uploaded_files))
+                logger.info("Starting file save and extraction for %d file(s)", len(uploaded_files))
                 yield f"data: {json.dumps({'extracting': True})}\n\n"
-                extractions = await _process_uploaded_files(uploaded_files)
+
+                save_dir = UPLOAD_DIR / conv_id / user_msg_id
+                save_dir.mkdir(parents=True, exist_ok=True)
+                file_blocks: list[dict] = []
+                attachments_list: list[str] = []
+                files_with_content: list[dict] = []
+
+                for f in uploaded_files:
+                    content = await f.read()
+                    filename = f.filename or "file"
+                    safe_name = _sanitize_filename(filename)
+                    stem = Path(safe_name).stem
+                    suffix = Path(safe_name).suffix
+                    dest = save_dir / safe_name
+                    idx = 0
+                    while dest.exists():
+                        idx += 1
+                        safe_name = f"{stem}_{idx}{suffix}"
+                        dest = save_dir / safe_name
+                    async with aiofiles.open(dest, "wb") as out:
+                        await out.write(content)
+                    rel_path = f"{conv_id}/{user_msg_id}/{dest.name}"
+                    file_blocks.append({"type": "file", "filename": filename, "path": rel_path})
+                    attachments_list.append(filename)
+                    files_with_content.append({"filename": filename, "content": content})
+
+                if file_blocks:
+                    await db_service.update_message(user_msg_id, blocks=file_blocks, attachments=attachments_list)
+
+                extractions, extraction_usage_raw = await _process_uploaded_files_from_bytes(files_with_content)
+                if extraction_usage_raw:
+                    extraction_usage_for_turn = {
+                        **extraction_usage_raw,
+                        "model_id": VISION_MODEL,
+                        "use_reasoning": False,
+                    }
                 extracted_parts = []
                 for ext in extractions:
                     yield f"data: {json.dumps({'file_extracted': {'filename': ext['filename'], 'preview': ext['text'][:200]}})}\n\n"
@@ -713,8 +912,10 @@ async def chat_stream(
             usage_to_store = run_usage if any(run_usage.values()) else None
             if usage_to_store is not None:
                 usage_to_store["use_reasoning"] = use_reasoning
+                usage_to_store["model_id"] = model_id
             await db_service.add_message(
-                conv_id, "assistant", assistant_content, saved_blocks or None, usage=usage_to_store
+                conv_id, "assistant", assistant_content, saved_blocks or None,
+                usage=usage_to_store, extraction_usage=extraction_usage_for_turn,
             )
 
             response_tokens = _count_tokens(assistant_content)
@@ -723,6 +924,30 @@ async def chat_stream(
                 conv_id[:8], tool_call_count, response_tokens, len(saved_blocks), run_usage,
             )
 
+            turn_cost_usd = 0.0
+            if usage_to_store:
+                mid = usage_to_store.get("model_id") or CLAUDE_MODEL
+                turn_cost_usd += compute_usage_cost(
+                    usage_to_store.get("input_tokens", 0),
+                    usage_to_store.get("output_tokens", 0),
+                    usage_to_store.get("cache_tokens", 0),
+                    mid,
+                    use_reasoning=usage_to_store.get("use_reasoning", False),
+                )
+            if extraction_usage_for_turn:
+                mid = extraction_usage_for_turn.get("model_id") or CLAUDE_MODEL
+                turn_cost_usd += compute_usage_cost(
+                    extraction_usage_for_turn.get("input_tokens", 0),
+                    extraction_usage_for_turn.get("output_tokens", 0),
+                    extraction_usage_for_turn.get("cache_tokens", 0),
+                    mid,
+                    use_reasoning=False,
+                )
+            payload = {"usage": run_usage, "extraction_usage": extraction_usage_for_turn, "cost_usd": round(turn_cost_usd, 6)}
+            rate = await _get_usd_to_inr_rate()
+            if rate is not None:
+                payload["cost_inr"] = round(turn_cost_usd * rate, 2)
+            yield f"data: {json.dumps(payload)}\n\n"
             yield "data: [DONE]\n\n"
         except Exception as e:
             logger.error("── CHAT STREAM ERROR ── conv=%s: %s", conv_id[:8], e, exc_info=True)

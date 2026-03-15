@@ -25,7 +25,15 @@ export type ContentBlock =
   | { type: 'table'; rows: QuoteRow[] }
   | { type: 'thinking'; text: string }
   | { type: 'summarizing'; done: boolean; summary?: string }
-  | { type: 'extracting'; done: boolean; files?: string[] };
+  | { type: 'extracting'; done: boolean; files?: string[] }
+  | { type: 'file'; filename: string; path: string };
+
+export interface MessageUsage {
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
+  cache_tokens: number;
+}
 
 export interface Message {
   id: string;
@@ -34,6 +42,10 @@ export interface Message {
   timestamp: Date;
   blocks?: ContentBlock[];
   attachments?: string[];
+  usage?: MessageUsage;
+  extraction_usage?: MessageUsage;
+  cost_usd?: number;
+  cost_inr?: number;
 }
 
 export interface Conversation {
