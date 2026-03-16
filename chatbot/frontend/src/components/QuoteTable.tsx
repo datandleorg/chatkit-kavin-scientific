@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Download, Plus, Trash2, ExternalLink, Loader2 } from 'lucide-react';
 import type { QuoteRow } from '../types';
 
@@ -7,16 +7,40 @@ interface QuoteTableProps {
   conversationId?: string | null;
 }
 
+/** Normalize a row from API (snake_case) or stream (camelCase) and coerce numbers so computed values are never NaN. */
+function normalizeRow(r: Record<string, unknown>): QuoteRow {
+  const num = (v: unknown, fallback: number) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : fallback;
+  };
+  return {
+    name: String(r.name ?? ''),
+    catalogNo: String(r.catalogNo ?? r.catalog_no ?? ''),
+    hsn: String(r.hsn ?? ''),
+    brand: String(r.brand ?? ''),
+    unit: String(r.unit ?? ''),
+    rate: num(r.rate, 0),
+    discount: num(r.discount, 0),
+    qty: Math.max(1, num(r.qty, 1)),
+    gstPercent: num(r.gstPercent ?? r.gst_percent, 18),
+    sourceUrl: String(r.sourceUrl ?? r.source_url ?? ''),
+  };
+}
+
 function computeRow(r: QuoteRow) {
-  const discountedRate = r.rate * (1 - r.discount / 100);
-  const amount = discountedRate * r.qty;
-  const gstValue = amount * (r.gstPercent / 100);
+  const rate = Number.isFinite(r.rate) ? r.rate : 0;
+  const discount = Number.isFinite(r.discount) ? r.discount : 0;
+  const qty = Number.isFinite(r.qty) && r.qty >= 1 ? r.qty : 1;
+  const gstPercent = Number.isFinite(r.gstPercent) ? r.gstPercent : 0;
+  const discountedRate = rate * (1 - discount / 100);
+  const amount = discountedRate * qty;
+  const gstValue = amount * (gstPercent / 100);
   const grandAmount = amount + gstValue;
   return { discountedRate, amount, gstValue, grandAmount };
 }
 
 function fmt(n: number): string {
-  if (n === 0) return '0';
+  if (!Number.isFinite(n) || n === 0) return '0';
   return n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
@@ -34,7 +58,7 @@ const COL_DEFS = [
   { key: 'amount', label: 'Amount', minW: 60, initW: 90 },
   { key: 'gstPercent', label: 'GST%', minW: 45, initW: 60 },
   { key: 'gstValue', label: 'G.Val', minW: 60, initW: 90 },
-  { key: 'grandAmount', label: 'G.Amt', minW: 60, initW: 95 },
+  { key: 'grandAmount', label: 'G.Amt', minW: 72, initW: 110 },
 ];
 
 function ResizeHandle({ onResize }: { onResize: (delta: number) => void }) {
@@ -80,8 +104,13 @@ const inputClass =
   'w-full bg-transparent border border-transparent hover:border-[var(--color-border)] focus:border-[var(--color-accent)] rounded px-1 py-1 text-xs text-[var(--color-fg)] outline-none transition-colors';
 
 export default function QuoteTable({ initialRows, conversationId }: QuoteTableProps) {
-  const [rows, setRows] = useState<QuoteRow[]>(initialRows);
+  const [rows, setRows] = useState<QuoteRow[]>(() => initialRows.map((r) => normalizeRow(r as unknown as Record<string, unknown>)));
   const [colWidths, setColWidths] = useState(() => COL_DEFS.map((c) => c.initW));
+
+  // When conversation is loaded/refreshed, initialRows may be from API (snake_case); sync and normalize
+  useEffect(() => {
+    setRows(initialRows.map((r) => normalizeRow(r as unknown as Record<string, unknown>)));
+  }, [initialRows]);
 
   const resizeCol = useCallback((colIdx: number, delta: number) => {
     setColWidths((prev) => {
@@ -154,10 +183,14 @@ export default function QuoteTable({ initialRows, conversationId }: QuoteTablePr
     return c;
   });
 
-  const actionColW = 40;
+  const actionColW = 48;
+
+  // Min width so table doesn't shrink below content when container is narrow (enables horizontal scroll)
+  const totalMinWidth =
+    colWidths.reduce((sum, w, i) => sum + (i === 1 ? COL_DEFS[1].minW : w), 0) + actionColW;
 
   return (
-    <div className="w-full rounded-xl border border-[var(--color-border)] overflow-hidden animate-fade-in">
+    <div className="w-full min-w-0 rounded-xl border border-[var(--color-border)] overflow-hidden animate-fade-in">
       <div className="flex items-center justify-between px-4 py-2.5 bg-[var(--color-bg-tertiary)]">
         <span className="text-sm font-semibold text-[var(--color-fg)]">Procurement Quote</span>
         <div className="flex gap-2">
@@ -182,12 +215,19 @@ export default function QuoteTable({ initialRows, conversationId }: QuoteTablePr
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="text-xs border-collapse" style={{ tableLayout: 'fixed', width: colWidths.reduce((a, b) => a + b, 0) + actionColW }}>
+      <div className="overflow-x-auto min-w-0">
+        <table
+          className="text-xs border-collapse w-full"
+          style={{ tableLayout: 'fixed', minWidth: totalMinWidth }}
+        >
           <colgroup>
-            {colWidths.map((w, i) => (
-              <col key={i} style={{ width: w }} />
-            ))}
+            {colWidths.map((w, i) =>
+              i === 1 ? (
+                <col key={i} style={{ minWidth: COL_DEFS[1].minW }} />
+              ) : (
+                <col key={i} style={{ width: w }} />
+              ),
+            )}
             <col style={{ width: actionColW }} />
           </colgroup>
 

@@ -139,12 +139,12 @@ export default function ChatInput({ onSend, onStop, disabled, reasoning: reasoni
       )}
 
       {disabled && (
-        <div className="max-w-3xl mx-auto mb-2 flex items-center justify-center gap-2 text-xs text-[var(--color-fg-muted)]">
+        <div className="w-full max-w-full mx-auto mb-2 px-4 sm:px-6 lg:px-8 flex items-center justify-center gap-2 text-xs text-[var(--color-fg-muted)]">
           <Loader2 size={14} className="animate-spin" />
           <span>Agent is working...</span>
         </div>
       )}
-      <div className={`max-w-3xl mx-auto flex items-end gap-2 transition-opacity duration-200 ${disabled ? 'opacity-60' : ''}`}>
+      <div className={`w-full max-w-full mx-auto flex items-end gap-2 transition-opacity duration-200 px-4 sm:px-6 lg:px-8 ${disabled ? 'opacity-60' : ''}`}>
         <div className={`flex-1 flex flex-col rounded-2xl border transition-colors duration-200
                         bg-[var(--color-input-bg)]
                         ${isDragging && !disabled

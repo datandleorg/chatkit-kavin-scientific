@@ -472,7 +472,7 @@ export default function MessageBubble({ message, isStreaming, conversationId }: 
           <Bot size={14} className="text-[var(--color-fg-muted)]" />
         </div>
       </div>
-      <div className="flex flex-col gap-2 max-w-[90%] min-w-0">
+      <div className="flex flex-col gap-2 w-full max-w-full min-w-0">
         {groups.map((group, gi) => {
           if (group.kind === 'thinking') {
             const thinkBlock = group.items[0] as { type: 'thinking'; text: string };

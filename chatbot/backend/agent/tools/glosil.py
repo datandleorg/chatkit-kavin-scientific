@@ -25,7 +25,7 @@ GLOSIL_HEADERS = {
 
 @tool
 async def search_glosil(search_term: str) -> str:
-    """Search the Glosil Scientific vendor knowledge base (ingested documents) by search term. Returns relevant chunks from the KB. Use get_glosil_product_details with product_id and product_url for web-based product details."""
+    """Search the Glosil Scientific vendor knowledge base (ingested documents) by search term. Returns relevant chunks from the KB; use the returned content for product info in the quote table."""
     search_term = search_term.strip()
     if not search_term:
         return "Error: search_term is required"

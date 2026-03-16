@@ -12,7 +12,7 @@ const suggestions = [
 
 export default function SuggestionChips({ onSelect }: SuggestionChipsProps) {
   return (
-    <div className="flex flex-col items-start gap-4 w-full max-w-3xl mx-auto px-4">
+    <div className="flex flex-col items-start gap-4 w-full max-w-full mx-auto px-4 sm:px-6 lg:px-8">
       <h2 className="text-lg font-semibold text-[var(--color-fg)]">
         Search for products for quote ...
       </h2>

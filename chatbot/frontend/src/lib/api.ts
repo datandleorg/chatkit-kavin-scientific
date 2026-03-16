@@ -99,6 +99,11 @@ export async function streamChat(
     const res = await fetch(url, {
       method: 'POST',
       body: formData,
+      headers: {
+        Accept: 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive',
+      },
     });
 
     if (!res.ok) {
@@ -390,6 +395,11 @@ export async function ingestKbDocuments(
   const res = await fetch(`${BASE_URL}/knowledge-bases/${kbId}/ingest`, {
     method: 'POST',
     body: formData,
+    headers: {
+      Accept: 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+    },
   });
   if (!res.ok) throw new Error('Ingest failed');
   const reader = res.body?.getReader();
