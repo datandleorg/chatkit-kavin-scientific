@@ -1134,7 +1134,15 @@ async def chat_stream(
             logger.error("── CHAT STREAM ERROR ── conv=%s: %s", conv_id[:8], e, exc_info=True)
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
-    return StreamingResponse(generate(), media_type="text/event-stream")
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
 
 
 @app.post("/upload")
